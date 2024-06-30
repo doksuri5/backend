@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
 const CertSchema = new mongoose.Schema({
-  userEmail: { type: String },
-  userPhone: { type: String },
+  user_email: { type: String, default: null },
+  user_phone: { type: String, default: null },
   code: { type: String, required: true },
-  expiresAt: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now, select: false },
+  expires_at: { type: String, required: true },
+  created_at: { type: Date, default: Date.now },
 });
 
 CertSchema.methods.generateCode = function () {
