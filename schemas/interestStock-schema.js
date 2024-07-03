@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const InterestStockSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -6,4 +6,5 @@ const InterestStockSchema = new mongoose.Schema({
   interest_date: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.models.InterestStock || mongoose.model("InterestStock", InterestStockSchema);
+const InterestStock = mongoose.models.InterestStock || mongoose.model("InterestStock", InterestStockSchema);
+export default InterestStock;

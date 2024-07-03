@@ -1,8 +1,9 @@
-const express = require("express");
-const multer = require("multer");
+import express from "express";
+import multer from "multer";
+import * as userController from "../controllers/user-controller.js";
+import { userAuthenticate } from "../middleware/auth-middleware.js";
+
 const router = express.Router();
-const userController = require("../controllers/user-controller");
-const { userAuthenticate } = require("../middleware/auth-middleware");
 
 // 로그인, 인증 부분
 router.get("/auth/validation", userController.validation);
@@ -18,4 +19,4 @@ router.put("/user/updateUser", multer().none(), userController.updateUser); // �
 router.post("/user/withdraw", userController.withdraw); // 유저 탈퇴
 router.patch("/user/language", userController.language); // 언어 변경
 
-module.exports = router;
+export default router;

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const StockSchema = new mongoose.Schema({
   icon: { type: String, required: true },
@@ -15,4 +15,5 @@ const StockSchema = new mongoose.Schema({
   interest_rate: { type: Number, default: 0 },
 });
 
-module.exports = mongoose.models.Stock || mongoose.model("Stock", StockSchema);
+const Stock = mongoose.models.Stock || mongoose.model("Stock", StockSchema);
+export default Stock;

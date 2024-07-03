@@ -1,9 +1,9 @@
-const jwt = require("../utils/jwt-util.js");
-const User = require("../schemas/user-schema");
-const connectDB = require("../database/db.js");
+import jwt from "../utils/jwt-util.js";
+import User from "../schemas/user-schema.js";
+import connectDB from "../database/db.js";
 
 // 공통된 토큰 처리 로직
-const authenticateToken = async (req, res) => {
+export const authenticateToken = async (req, res) => {
   const accessToken = req.cookies.accessToken;
   let payload = accessToken ? jwt.verifyToken(accessToken) : null;
 
@@ -48,18 +48,13 @@ const authenticateToken = async (req, res) => {
 };
 
 // 일반 유저 권한 토큰 검증
-const userAuthenticate = async (req, res, next) => {
-  // if (await authenticateToken(req, res)) {
-  //   next();
-  // } else {
-  //   res.status(401).json({ ok: false, message: "로그인 후 이용해주세요.", errorCode: "NOT_LOGGED_IN" });
-  // }
+export const userAuthenticate = async (req, res, next) => {
+  if (await authenticateToken(req, res)) {
+    next();
+  } else {
+    res.status(401).json({ ok: false, message: "로그인 후 이용해주세요.", errorCode: "NOT_LOGGED_IN" });
+  }
 
   console.log("cookies", req.cookies);
-  console.log("signedCookies", req.signedCookies);
-  console.log("session", req.session);
-  console.log("sessionID", req.sessionID);
   console.log("-------------------------------------------------------");
 };
-
-module.exports = { userAuthenticate, authenticateToken };

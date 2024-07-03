@@ -1,12 +1,14 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
-const session = require("express-session");
-const fileStore = require("session-file-store")(session);
-const fs = require("fs");
-const path = require("path");
-const connectDB = require("./database/db.js");
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath, pathToFileURL } from "url";
+import connectDB from "./database/db.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 if (process.env.NODE_ENV === "production") {
   dotenv.config({ path: path.join(__dirname, "./.env.production") });
@@ -22,30 +24,23 @@ app.use(
     credentials: true,
   })
 );
-app.use(cookieParser(process.env.COOKIE_SECRET));
-const sessionOption = {
-  resave: false,
-  saveUninitialized: false,
-  secret: process.env.COOKIE_SECRET,
-  cookie: {
-    httpOnly: true,
-    secure: false, // 배포시 true
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 한 달
-  },
-  store: new fileStore(),
-};
-if (process.env.NODE_ENV === "production") {
-  sessionOption.proxy = true;
-  sessionOption.cookie.secure = true;
-}
-app.use(session(sessionOption));
+app.use(cookieParser());
 
 // routes 파일들을 모두 읽어서 각각을 Express 앱에 등록
 const routesPath = path.join(__dirname, "/routes"); // routes 파일들이 있는 디렉토리 경로
-fs.readdirSync(routesPath).forEach((file) => {
-  const route = require(path.join(routesPath, file));
-  app.use("/api", route);
-});
+const routeFiles = fs.readdirSync(routesPath);
+
+for (const file of routeFiles) {
+  const filePath = pathToFileURL(path.join(routesPath, file)).href;
+  import(filePath)
+    .then((module) => {
+      const route = module.default;
+      app.use("/api", route);
+    })
+    .catch((err) => {
+      console.error(`Failed to load route ${filePath}:`, err);
+    });
+}
 
 // DB 연결
 connectDB();

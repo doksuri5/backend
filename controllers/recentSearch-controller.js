@@ -1,37 +1,38 @@
-const _ = require("lodash");
-const NodeCache = require("node-cache");
-const connectDB = require("../database/db.js");
-const Stock = require("../schemas/stock-schema");
-const RecentSearch = require("../schemas/recentSearch-schema");
-const PopularSearch = require("../schemas/popularSearch-schema");
-const appConstants = require("../constants/app.constants");
+import _ from "lodash";
+import NodeCache from "node-cache";
+import connectDB from "../database/db.js";
+import Stock from "../schemas/stock-schema.js";
+import RecentSearch from "../schemas/recentSearch-schema.js";
+import PopularSearch from "../schemas/popularSearch-schema.js";
+import { STOCK_NAME_LIST } from "../constants/app.constants.js";
 
 // 검색 캐시 초기화 (5초)
 const searchCache = new NodeCache({ stdTTL: 5 });
 
 // 발견 페이지 - 최근 검색어 보여줄 때 사용
-exports.getRecentSearches = async (req, res) => {
+export const getRecentSearches = async (req, res) => {
   try {
     // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
+    const user_id = req.cookies.user_id;
 
     // 데이터베이스 연결
-    connectDB();
+    await connectDB();
 
     const searches = await RecentSearch.find({ user_id }).sort({ search_date: -1 });
     res.status(200).json({ ok: true, data: searches });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
-    return;
   }
 };
 
 // 관심 종목 페이지 모달 - 최근 검색한 종목 보여줄 때 사용
-exports.getRecentSearchDetails = async (req, res) => {
+export const getRecentSearchDetails = async (req, res) => {
   try {
     // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
+    const user_id = req.cookies.user_id;
 
     // 데이터베이스 연결
-    connectDB();
+    await connectDB();
 
     // 최근 검색어 DB 조회
     const searches = await RecentSearch.find({ user_id }).sort({ search_date: -1 });
@@ -43,31 +44,31 @@ exports.getRecentSearchDetails = async (req, res) => {
     // 최근 검색어와 주식 데이터 병합
     const mergedList = _.map(searches, (search) => {
       const stock = _.find(stockData, { stock_name: search.stock_name });
-      return { ...search, ...stock };
+      return { ...search.toObject(), ...stock?.toObject() };
     });
 
     res.status(200).json({ ok: true, data: mergedList });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
-    return;
   }
 };
 
 // 최근 검색어 저장 (좀 더 생각해보기 - 한 글자만 입력했을 경우와, 영어로 입력했을 때 어떻게 해야 되는지)
-exports.saveRecentSearch = async (req, res) => {
+export const saveRecentSearch = async (req, res) => {
   try {
     const { stock_name } = req.body;
 
     // 검색어가 6가지 종목 안에 없는 경우
-    if (!appConstants.STOCK_NAME_LIST.includes(stock_name)) {
+    if (!STOCK_NAME_LIST.includes(stock_name)) {
       res.status(200).json({ ok: true, data: [] });
       return;
     }
 
     // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
+    const user_id = req.cookies.user_id;
 
     // 데이터베이스 연결
-    connectDB();
+    await connectDB();
 
     // 검색어가 이미 존재하는지 확인
     const existingSearch = await RecentSearch.findOne({ user_id, stock_name });
@@ -97,19 +98,18 @@ exports.saveRecentSearch = async (req, res) => {
     res.status(200).json({ ok: true, data: result });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
-    return;
   }
 };
 
 // 유저 인덱스 따른 최근 검색어 삭제
-exports.deleteRecentSearches = async (req, res) => {
+export const deleteRecentSearches = async (req, res) => {
   try {
     // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
+    const user_id = req.cookies.user_id;
 
     const result = await RecentSearch.deleteMany({ user_id }); // user_id에 따른 전부 삭제
     res.status(200).json({ ok: true, data: result });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
-    return;
   }
 };

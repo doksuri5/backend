@@ -1,14 +1,14 @@
-const axios = require("axios");
-const { v4: uuid } = require("uuid");
-const bcrypt = require("bcrypt");
+import axios from "axios";
+import { v4 as uuid } from "uuid";
+import bcrypt from "bcrypt";
 
-const connectDB = require("../database/db.js");
-const jwt = require("../utils/jwt-util");
-const User = require("../schemas/user-schema");
-const Log = require("../schemas/log-schema");
-const Withdraw = require("../schemas/withdraw-schema");
+import connectDB from "../database/db.js";
+import * as jwt from "../utils/jwt-util.js";
+import User from "../schemas/user-schema.js";
+import Log from "../schemas/log-schema.js";
+import Withdraw from "../schemas/withdraw-schema.js";
 
-exports.validation = async (req, res) => {
+export const validation = async (req, res) => {
   const user = await User.findById(req.session.userId);
 
   if (!user) {
@@ -19,7 +19,7 @@ exports.validation = async (req, res) => {
 };
 
 // 전체 유저 조회 (테스트)
-exports.getAllUser = async (req, res) => {
+export const getAllUser = async (req, res) => {
   try {
     const user = await User.find();
     res.status(200).json({
@@ -37,7 +37,7 @@ exports.getAllUser = async (req, res) => {
 };
 
 // 로그인 (JWT 생성)
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   const { login_email, login_pw } = req.body;
   try {
     await connectDB();
@@ -119,7 +119,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.naverLogin = async (req, res, next) => {
+export const naverLogin = async (req, res, next) => {
   const { code, state } = req.body;
 
   try {
@@ -174,7 +174,7 @@ exports.naverLogin = async (req, res, next) => {
 };
 
 // 카카오 로그인 (해야 함)
-exports.kakaoLogin = async (req, res, next) => {
+export const kakaoLogin = async (req, res, next) => {
   const { code } = req.body;
 
   try {
@@ -234,7 +234,7 @@ exports.kakaoLogin = async (req, res, next) => {
 };
 
 // 언어 변경
-exports.language = async (req, res) => {
+export const language = async (req, res) => {
   try {
     // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
     const userId = "6682e16dfae77a1869b25865";
@@ -261,7 +261,7 @@ exports.language = async (req, res) => {
 };
 
 // 아이디(이메일) 중복 확인
-exports.duplicatedEmail = async (req, res) => {
+export const duplicatedEmail = async (req, res) => {
   try {
     const { email } = req.params;
 
@@ -289,7 +289,7 @@ exports.duplicatedEmail = async (req, res) => {
 };
 
 // 유저 탈퇴
-exports.withdraw = async (req, res) => {
+export const withdraw = async (req, res) => {
   try {
     // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
     const userId = "6682e16dfae77a1869b25865";
@@ -324,7 +324,7 @@ exports.withdraw = async (req, res) => {
 };
 
 // 로컬 회원가입
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const {
       name,
@@ -379,7 +379,7 @@ exports.register = async (req, res) => {
 };
 
 // 유저 개인정보 수정
-exports.updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
   try {
     // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
     const userId = "668428f7abe0111f339bfc27";
