@@ -3,10 +3,12 @@ import { v4 as uuid } from "uuid";
 import bcrypt from "bcrypt";
 
 import connectDB from "../database/db.js";
-import * as jwt from "../utils/jwt-util.js";
 import User from "../schemas/user-schema.js";
 import Log from "../schemas/log-schema.js";
 import Withdraw from "../schemas/withdraw-schema.js";
+
+import uploadProfileImg from "../middleware/imageUpload.js";
+import deleteFileFromS3 from "../middleware/imageDelete.js";
 
 export const validation = async (req, res) => {
   const user = await User.findById(req.session.userId);
@@ -302,7 +304,11 @@ export const withdraw = async (req, res) => {
       return;
     });
 
-    const user = await User.findOneAndUpdate({ _id: userId }, { $set: { is_delete: true } }, { new: true });
+    const user = await User.findOneAndUpdate(
+      { _id: userId },
+      { $set: { is_delete: true, deleted_at: Date.now } },
+      { new: true }
+    );
 
     // 클라이언트에서 보낸 이메일과 세션으로 DB 조회한 이메일이 다른 경우
     if (email !== user.email) {
@@ -324,111 +330,140 @@ export const withdraw = async (req, res) => {
 };
 
 // 로컬 회원가입
-export const register = async (req, res) => {
-  try {
-    const {
-      name,
-      email,
-      password,
-      birth,
-      phone,
-      gender,
-      profile = "",
-      nickname,
-      interest_stocks = [""],
-      language = "ko",
-    } = req.body;
+export const register = [
+  uploadProfileImg.single("profile"),
+  async (req, res) => {
+    try {
+      const {
+        name,
+        email,
+        password,
+        birth,
+        phone,
+        gender,
+        nickname,
+        interest_stocks = [""],
+        language = "ko",
+      } = req.body;
 
-    // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-      return;
-    });
+      // 데이터베이스 연결
+      await connectDB().catch((err) => {
+        res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+        return;
+      });
 
-    // 동일한 이메일을 가진 사용자가 이미 존재하는지 확인
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      res.status(400).json({ ok: false, message: "이미 존재하는 이메일입니다." });
-      return;
+      // 동일한 이메일을 가진 사용자가 이미 존재하는지 확인
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        res.status(400).json({ ok: false, message: "이미 존재하는 이메일입니다." });
+        return;
+      }
+
+      // 비밀번호 해시 처리
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // 파일 이름
+      const profile_img_name = req.file ? `${req.file.key}` : "";
+
+      const user = new User({
+        sns_id: uuid(),
+        name,
+        email,
+        password: hashedPassword, // 해싱된 비밀번호 저장
+        birth,
+        phone,
+        gender,
+        profile: profile_img_name,
+        nickname,
+        interest_stocks,
+        language,
+        login_type: "local",
+      });
+
+      // 데이터베이스에 사용자 저장
+      await user.save();
+
+      res.status(200).json({ ok: true, message: "회원가입 성공" });
+    } catch (err) {
+      res.status(500).json({ ok: false, message: err.message });
     }
-
-    // 비밀번호 해시 처리
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({
-      sns_id: uuid(),
-      name,
-      email,
-      password: hashedPassword, // 해싱된 비밀번호 저장
-      birth,
-      phone,
-      gender,
-      profile,
-      nickname,
-      interest_stocks,
-      language,
-      login_type: "local",
-    });
-
-    // 데이터베이스에 사용자 저장
-    await user.save();
-
-    res.status(200).json({ ok: true, message: "회원가입 성공" });
-  } catch (err) {
-    res.status(500).json({ ok: false, message: err.message });
-  }
-};
+  },
+];
 
 // 유저 개인정보 수정
-export const updateUser = async (req, res) => {
-  try {
-    // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
-    const userId = "668428f7abe0111f339bfc27";
+export const updateUser = [
+  uploadProfileImg.single("profile"),
+  async (req, res) => {
+    try {
+      // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
+      const userId = "66851b104c108bdb12c7973e";
 
-    const { name, email, password, birth, phone, gender, profile = "", nickname, interest_stocks = [""] } = req.body;
+      const { name, email, password, birth, phone, gender, nickname, interest_stocks = [] } = req.body;
 
-    // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-      return;
-    });
+      // 데이터베이스 연결
+      await connectDB().catch((err) => {
+        res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+        return;
+      });
 
-    // 고정 값으로 보낸 이메일과 DB에 저장된 이메일이 같은지 확인
-    const user = await User.findById(userId).select("+password");
-    if (!user) {
-      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
-      return;
-    }
+      // 고정 값으로 보낸 이메일과 DB에 저장된 이메일이 같은지 확인
+      const user = await User.findById(userId).select("+password");
+      if (!user) {
+        res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+        return;
+      }
 
-    // 클라이언트에서 보낸 이메일과 db에 저장된 이메일이 다른 경우
-    if (user.email !== email) {
-      res.status(404).json({ ok: false, message: "회원 정보가 일치하지 않습니다." });
-      return;
-    }
+      // 클라이언트에서 보낸 이메일과 db에 저장된 이메일이 다른 경우
+      if (user.email !== email) {
+        res.status(404).json({ ok: false, message: "회원 정보가 일치하지 않습니다." });
+        return;
+      }
 
-    // 비밀번호 같은지 여부 판별
-    let hashedPassword = user.password;
-    if (password !== "" && !(await bcrypt.compare(password, user.password))) {
-      hashedPassword = await bcrypt.hash(password, 10);
-    }
-    const updateUser = await User.findByIdAndUpdate(
-      userId, // 찾을 조건
-      {
-        $set: {
-          name,
-          password: hashedPassword, // 해싱된 비밀번호 저장
-          phone,
-          birth,
-          profile,
-          nickname,
-          interest_stocks,
-          gender,
+      // 비밀번호 같은지 여부 판별
+      let hashedPassword = user.password;
+      if (password !== "" && !(await bcrypt.compare(password, user.password))) {
+        hashedPassword = await bcrypt.hash(password, 10); // 새로운 비밀번호의 경우 해시처리
+      }
+
+      let new_profile_img = "";
+
+      // 프로필 이미지 교체
+      if (user.profile && req.file) {
+        new_profile_img = `${req.file.key}`;
+        await deleteFileFromS3(user.profile);
+      }
+
+      // 기존 프로필 이미지 삭제
+      if (user.profile && !req.file) {
+        new_profile_img = "";
+        await deleteFileFromS3(user.profile);
+      }
+
+      // 프로필 이미지 추가
+      if (user.profile === "" && req.file) {
+        new_profile_img = `${req.file.key}`;
+      }
+
+      const updateUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            name,
+            password: hashedPassword,
+            phone,
+            birth,
+            profile: new_profile_img,
+            nickname,
+            interest_stocks,
+            gender,
+          },
         },
-      }, // 업데이트할 데이터
-      { new: true } // 업데이트된 문서를 반환
-    );
+        { new: true } // 업데이트된 문서를 반환
+      );
 
-    res.status(200).json({ ok: true, data: updateUser });
-  } catch (err) {
-    res.status(500).json({ ok: false, message: err.message });
-  }
-};
+      res.status(200).json({ ok: true, data: updateUser });
+    } catch (err) {
+      res.status(500).json({ ok: false, message: err.message });
+    }
+  },
+];
