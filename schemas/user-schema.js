@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const UserSchema = new mongoose.Schema({
   sns_id: { type: String, required: true }, // 소셜 로그인은 반환 값 저장, 로컬 로그인은 uuidv4로 저장

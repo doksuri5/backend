@@ -1,6 +1,6 @@
 import axios from "axios";
 import { v4 as uuid } from "uuid";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 import connectDB from "../database/db.js";
 import User from "../schemas/user-schema.js";
