@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { getKoreanTime } from "../utils/getKoreanTime.js";
 
 const UserSchema = new mongoose.Schema({
   sns_id: { type: String, required: true }, // 소셜 로그인은 반환 값 저장, 로컬 로그인은 uuidv4로 저장
@@ -15,7 +16,7 @@ const UserSchema = new mongoose.Schema({
   language: { type: String, default: "ko", enum: ["ko", "en", "ch", "jp", "fr"] }, // default: 기본 값 설정
   login_type: { type: String, required: true, default: "local" },
   is_delete: { type: Boolean, default: false },
-  created_at: { type: Date, default: Date.now }, // 생성한 날짜
+  created_at: { type: Date, default: () => getKoreanTime() }, // 생성한 날짜
   updated_at: { type: Date, default: null }, // 업데이트한 날짜
   deleted_at: { type: Date, default: null }, // 회원 탈퇴한 날짜
 });
