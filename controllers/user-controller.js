@@ -6,9 +6,12 @@ import connectDB from "../database/db.js";
 import User from "../schemas/user-schema.js";
 import Log from "../schemas/log-schema.js";
 import Withdraw from "../schemas/withdraw-schema.js";
+import Cert from "../schemas/cert-schema.js";
 
 import uploadProfileImg from "../middleware/imageUpload.js";
 import deleteFileFromS3 from "../middleware/imageDelete.js";
+import { send_main_func } from "../utils/emailSendUtil.js";
+import { getKoreanTime } from "../utils/getKoreanTime.js";
 
 export const validation = async (req, res) => {
   const user = await User.findById(req.session.userId);
@@ -306,7 +309,7 @@ export const withdraw = async (req, res) => {
 
     const user = await User.findOneAndUpdate(
       { _id: userId },
-      { $set: { is_delete: true, deleted_at: Date.now } },
+      { $set: { is_delete: true, deleted_at: getKoreanTime() } },
       { new: true }
     );
 
@@ -467,3 +470,54 @@ export const updateUser = [
     }
   },
 ];
+
+// 인증코드 이메일 발송
+export const sendEmail = async (req, res) => {
+  const { email } = req.body;
+  try {
+    await connectDB();
+    const user = await User.findOne({ email });
+    if (user) {
+      res.status(400).json({ ok: false, message: "이미 가입된 이메일입니다." });
+      return;
+    }
+
+    // 인증 코드 생성 및 Cert 인스턴스 생성
+    const cert = new Cert({ user_email: email });
+    const code = cert.generateCode(); // 인증 코드 및 만료 시간 생성
+
+    await send_main_func({ to: email, VERIFICATION_CODE: code });
+    await cert.save();
+
+    res.status(200).json({ ok: true, message: "이메일 전송 완료" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+// 인증 코드 체크
+export const verifyCode = async (req, res) => {
+  const { email, code } = req.body;
+  try {
+    await connectDB();
+    const cert = await Cert.findOne({ user_email: email }).sort({ created_at: -1 });
+
+    if (!cert) {
+      res.status(400).json({ ok: false, message: "인증 요청이 없습니다." });
+      return;
+    }
+
+    const isValid = cert.verifyCode(code);
+
+    if (!isValid) {
+      res.status(400).json({ ok: false, message: "인증 코드가 유효하지 않거나 만료되었습니다." });
+      return;
+    }
+
+    res.status(200).json({ ok: true, message: "인증 성공" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
