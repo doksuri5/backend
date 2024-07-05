@@ -6,6 +6,20 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import connectDB from "./database/db.js";
+import { CronJob } from "cron";
+import { getSearchNews } from "./cron-job/search-news.js";
+
+const job = new CronJob(
+  "* * * * *",
+  function () {
+    getSearchNews("애플 주식");
+  },
+  null,
+  false,
+  "Asia/Seoul"
+);
+
+job.start();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
