@@ -12,7 +12,6 @@ const UserSchema = new mongoose.Schema({
   gender: { type: String, enum: ["M", "F", null], default: null }, // enum: 리스트 중 하나의 값만 가질 수 있음
   profile: { type: String, default: "" }, // 이미지 링크 (s3 생각중)
   nickname: { type: String, required: true },
-  interest_stocks: { type: [String] }, // [String]: string 타입의 리스트
   language: { type: String, default: "ko", enum: ["ko", "en", "ch", "jp", "fr"] }, // default: 기본 값 설정
   login_type: { type: String, required: true, default: "local" },
   is_delete: { type: Boolean, default: false },
