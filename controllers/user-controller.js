@@ -426,28 +426,22 @@ export const updateUserProfile = [
       }
 
       // 프로필 수정
-      const updateUser = await User.findByIdAndUpdate(
-        userId,
-        {
-          $set: {
-            nickname,
-            gender,
-            profile: new_profile_img,
-          },
+      await User.findByIdAndUpdate(userId, {
+        $set: {
+          nickname,
+          gender,
+          profile: new_profile_img,
         },
-        { new: true } // 업데이트된 문서를 반환
-      );
+      });
 
       // 유저 관심주식 조회
       const interestStock = await InterestStock.findOne({ user_email: user.email });
-      let updatedStockList = [];
 
       // body에 관심 주식을 넣은 경우
       if (interest_stocks && interest_stocks.length > 0) {
         // DB에 유저 관심 주식이 있는 경우
         if (interestStock) {
           await interestStock.updateStockList(interest_stocks);
-          updatedStockList = interestStock.stock_list;
         }
         // DB에 유저 관심 주식이 없을 경우 새로 생성
         else {
@@ -456,16 +450,10 @@ export const updateUserProfile = [
             stock_list: interest_stocks.map((stock) => ({ stock, created_at: getKoreanTime() })),
           });
           await newInterestStock.save();
-          updatedStockList = newInterestStock.stock_list;
         }
-      } else if (interestStock) {
-        updatedStockList = interestStock.stock_list;
       }
 
-      // 프로필과 관심주식 합치기
-      const result = { user: updateUser, interest_stocks: updatedStockList };
-
-      res.status(200).json({ ok: true, data: result });
+      res.status(200).json({ ok: true, message: "프로필 수정 완료" });
     } catch (err) {
       res.status(500).json({ ok: false, message: err.message });
     }
