@@ -338,7 +338,7 @@ export const register = [
   uploadProfileImg.single("profile"),
   async (req, res) => {
     try {
-      const { name, email, password, birth, phone, gender, nickname, language = "ko" } = req.body;
+      const { name, email, password, birth, phone, gender, nickname, interest_stocks, language = "ko" } = req.body;
 
       // 데이터베이스 연결
       await connectDB().catch((err) => {
@@ -349,7 +349,7 @@ export const register = [
       // 동일한 이메일을 가진 사용자가 이미 존재하는지 확인
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        res.status(400).json({ ok: false, message: "이미 존재하는 이메일입니다." });
+        res.status(400).json({ ok: false, message: "이미 회원가입이 된 이메일입니다." });
         return;
       }
 
@@ -358,6 +358,15 @@ export const register = [
 
       // 파일 이름
       const profile_img_name = req.file ? `${req.file.key}` : "";
+
+      // body에 관심 주식을 넣은 경우
+      if (interest_stocks && interest_stocks.length > 0) {
+        const newInterestStock = new InterestStock({
+          user_email: email,
+          stock_list: interest_stocks.map((stock) => ({ stock, created_at: getKoreanTime() })),
+        });
+        await newInterestStock.save();
+      }
 
       const user = new User({
         sns_id: uuid(),
@@ -371,6 +380,72 @@ export const register = [
         nickname,
         language,
         login_type: "local",
+      });
+
+      // 데이터베이스에 사용자 저장
+      await user.save();
+
+      res.status(200).json({ ok: true, message: "회원가입 성공" });
+    } catch (err) {
+      res.status(500).json({ ok: false, message: err.message });
+    }
+  },
+];
+
+// 소셜 회원가입registerSocial
+export const registerSocial = [
+  uploadProfileImg.single("profile"),
+  async (req, res) => {
+    try {
+      const {
+        sns_id,
+        name,
+        email,
+        birth,
+        phone,
+        gender,
+        nickname,
+        interest_stocks,
+        language = "ko",
+        login_type,
+      } = req.body;
+
+      // 데이터베이스 연결
+      await connectDB().catch((err) => {
+        res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+        return;
+      });
+
+      // 동일한 이메일을 가진 사용자가 이미 존재하는지 확인
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        res.status(400).json({ ok: false, message: "이미 회원가입이 된 이메일입니다." });
+        return;
+      }
+
+      // 파일 이름
+      const profile_img_name = req.file ? `${req.file.key}` : "";
+
+      // body에 관심 주식을 넣은 경우
+      if (interest_stocks && interest_stocks.length > 0) {
+        const newInterestStock = new InterestStock({
+          user_email: email,
+          stock_list: interest_stocks.map((stock) => ({ stock, created_at: getKoreanTime() })),
+        });
+        await newInterestStock.save();
+      }
+
+      const user = new User({
+        sns_id,
+        name,
+        email,
+        birth,
+        phone,
+        gender,
+        profile: profile_img_name,
+        nickname,
+        language,
+        login_type,
       });
 
       // 데이터베이스에 사용자 저장
