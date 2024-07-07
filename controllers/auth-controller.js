@@ -9,6 +9,7 @@ import InterestStock from "../schemas/interestStock-schema.js";
 import uploadProfileImg from "../middleware/imageUpload.js";
 import { send_main_func } from "../utils/emailSendUtil.js";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
+import { generatePassword } from "../utils/generatePassword.js";
 
 // 아이디(이메일) 중복 확인 (프론트로 변경)
 export const duplicatedEmail = async (req, res) => {
@@ -27,7 +28,6 @@ export const duplicatedEmail = async (req, res) => {
       return;
     });
 
-    // (탈퇴여부 체크)
     const user = await User.findOne({ email: email, is_delete: false }).exec();
     if (user) {
       res.status(200).json({ ok: true, data: user.email });
@@ -45,8 +45,7 @@ export const sendEmail = async (req, res) => {
   try {
     await connectDB();
 
-    // (탈퇴여부 체크)
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, is_delete: false });
     if (user) {
       res.status(401).json({ ok: false, message: "이미 가입된 이메일입니다." });
       return;
@@ -56,7 +55,7 @@ export const sendEmail = async (req, res) => {
     const cert = new Cert({ user_email: email });
     const code = cert.generateCode(); // 인증 코드 및 만료 시간 생성
 
-    await send_main_func({ to: email, VERIFICATION_CODE: code });
+    await send_main_func({ type: "code", to: email, VALUE: code });
     await cert.save();
 
     res.status(200).json({ ok: true, message: "이메일 전송 완료" });
@@ -213,3 +212,38 @@ export const registerSocial = [
     }
   },
 ];
+
+export const findPassword = async (req, res) => {
+  const { name, email } = req.body;
+
+  try {
+    await connectDB();
+
+    const user = await User.findOne({ name, email, is_delete: false });
+    if (!user) {
+      res.status(404).json({ ok: false, message: "가입되지 않은 이메일입니다." });
+      return;
+    }
+
+    const newPassword = generatePassword(); // 임시 비밀번호 발급
+    const hashPassword = await bcrypt.hash(newPassword, 10); // 새로운 비밀번호의 경우 해시처리
+
+    // 이메일 발송
+    await send_main_func({ type: "password", to: email, VALUE: newPassword });
+
+    await User.findOneAndUpdate(
+      { name, email, is_delete: false },
+      {
+        $set: {
+          password: hashPassword,
+          updated_at: getKoreanTime(),
+        },
+      }
+    );
+
+    res.status(200).json({ ok: true, message: "이메일 전송 완료" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};

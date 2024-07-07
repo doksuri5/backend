@@ -9,5 +9,6 @@ router.post("/auth/sendEmail", authController.sendEmail); // 인증코드 이메
 router.post("/auth/verifyCode", authController.verifyCode); // 인증코드 검증
 router.post("/auth/register", authController.register); // 회원가입
 router.post("/auth/registerSocial", authController.registerSocial); // 소셜 회원가입
+router.post("/auth/findPassword", authController.findPassword); // 비밀번호 찾기 (임시 비밀번호 발급)
 
 export default router;
