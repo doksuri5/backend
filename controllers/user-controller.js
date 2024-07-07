@@ -146,7 +146,7 @@ export const updateUserProfile = [
       await User.findOneAndUpdate(
         { sns_id, is_delete: false },
         {
-          $set: { nickname, gender, profile: new_profile_img },
+          $set: { nickname, gender, profile: new_profile_img, updated_at: getKoreanTime() },
         }
       );
 
@@ -217,6 +217,7 @@ export const updateUserInfo = async (req, res) => {
           password: hashedPassword,
           phone,
           birth,
+          updated_at: getKoreanTime(),
         },
       }
     );
