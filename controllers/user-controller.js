@@ -161,11 +161,7 @@ export const updateUserProfile = [
         }
         // DB에 유저 관심 주식이 없을 경우 새로 생성
         else {
-          const newInterestStock = new InterestStock({
-            user_email: user.email,
-            stock_list: interest_stocks.map((stock) => ({ stock, created_at: getKoreanTime() })),
-          });
-          await newInterestStock.save();
+          await interestStock.addStocks(interest_stocks);
         }
       }
 
