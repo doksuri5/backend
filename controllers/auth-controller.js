@@ -118,17 +118,17 @@ export const register = [
       // 파일 이름
       const profile_img_name = req.file ? `${req.file.key}` : "";
 
+      // 유저 sns_id 생성
+      const sns_id = uuid();
+
       // body에 관심 주식을 넣은 경우
       if (interest_stocks && interest_stocks.length > 0) {
-        const newInterestStock = new InterestStock({
-          user_email: email,
-          stock_list: interest_stocks.map((stock) => ({ stock, created_at: getKoreanTime() })),
-        });
-        await newInterestStock.save();
+        const interestStock = new InterestStock({ user_snsId: sns_id, user_email: email });
+        await interestStock.addStocks(interest_stocks);
       }
 
       const user = new User({
-        sns_id: uuid(),
+        sns_id,
         name,
         email,
         password: hashedPassword, // 해싱된 비밀번호 저장
@@ -151,7 +151,7 @@ export const register = [
   },
 ];
 
-// 소셜 회원가입registerSocial
+// 소셜 회원가입
 export const registerSocial = [
   uploadProfileImg.single("profile"),
   async (req, res) => {
@@ -187,11 +187,8 @@ export const registerSocial = [
 
       // body에 관심 주식을 넣은 경우
       if (interest_stocks && interest_stocks.length > 0) {
-        const newInterestStock = new InterestStock({
-          user_email: email,
-          stock_list: interest_stocks.map((stock) => ({ stock, created_at: getKoreanTime() })),
-        });
-        await newInterestStock.save();
+        const interestStock = new InterestStock({ user_snsId: sns_id, user_email: email });
+        await interestStock.addStocks(interest_stocks);
       }
 
       const user = new User({
