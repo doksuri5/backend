@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
 
 const WithdrawSchema = new mongoose.Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  user_snsId: { type: String, required: true, index: true },
   user_email: { type: String, required: true },
   reason: { type: String, required: true },
   reason_other: { type: String, default: null },

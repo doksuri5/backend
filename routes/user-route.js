@@ -4,11 +4,6 @@ import { userAuthenticate } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
-// 로그인, 인증 부분
-router.get("/auth/validation", userController.validation);
-router.post("/auth/login", userController.login); // 진행 중
-
-// api 개발
 router.get("/getAllUser", userController.getAllUser); // 전체 유저 조회
 router.get("/auth/duplicatedEmail/:email", userController.duplicatedEmail); // 중복 이메일 체크
 router.post("/auth/sendEmail", userController.sendEmail); // 인증코드 이메일 발송

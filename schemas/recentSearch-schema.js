@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
 
 const RecentSearchSchema = new mongoose.Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+  user_snsId: { type: String, required: true, index: true },
+  user_email: { type: String, required: true },
+  is_delete: { type: Boolean, default: false },
   stock_name: { type: String, required: true },
   search_date: { type: Date, default: () => getKoreanTime() },
 });
