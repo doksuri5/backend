@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
 
 const InterestStockSchema = new mongoose.Schema({
-  user_email: { type: String, required: true, index: true },
+  user_snsId: { type: String, required: true, index: true },
+  user_email: { type: String, required: true },
+  is_delete: { type: Boolean, default: false },
   stock_list: [
     {
       stockName: {
