@@ -9,17 +9,35 @@ import connectDB from "./database/db.js";
 import { CronJob } from "cron";
 import { getSearchNews } from "./cron-job/search-news.js";
 
-const job = new CronJob(
-  "* * * * *",
-  function () {
-    getSearchNews("애플 주식");
-  },
-  null,
-  false,
-  "Asia/Seoul"
-);
+const test = ["애플 주식", "마이크로소프트 주식", "아마존 주식"];
+function getRandomElement(arr) {
+  const randomIndex = Math.floor(Math.random() * arr.length);
+  return arr[randomIndex];
+}
 
-job.start();
+// 작업 정의
+const executeTask = async () => {
+  const searchName = getRandomElement(test);
+  console.log("===================================================");
+  console.log(searchName);
+  console.log(await getSearchNews(searchName));
+};
+
+(async () => {
+  await executeTask();
+
+  const job = new CronJob(
+    "*/1 * * * *",
+    executeTask,
+    () => {
+      console.log("작업이 완료되었습니다.");
+    },
+    true, // true일 경우 서버가 재시작 되면 자동으로 다시 실행
+    "Asia/Seoul"
+  );
+
+  job.start();
+})();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
