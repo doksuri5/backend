@@ -120,10 +120,11 @@ export const register = [
       // 유저 sns_id 생성
       const sns_id = uuid();
 
+      const parse_stockList = typeof interest_stocks === "string" ? JSON.parse(interest_stocks) : interest_stocks;
       // body에 관심 주식을 넣은 경우
-      if (interest_stocks && interest_stocks.length > 0) {
+      if (parse_stockList && parse_stockList.length > 0) {
         const interestStock = new InterestStock({ user_snsId: sns_id, user_email: email });
-        await interestStock.addStocks(interest_stocks);
+        await interestStock.addStocks(parse_stockList);
       }
 
       const user = new User({
@@ -184,10 +185,12 @@ export const registerSocial = [
       // 파일 이름
       const profile_img_name = req.file ? `${req.file.key}` : "";
 
+      const parse_stockList = typeof interest_stocks === "string" ? JSON.parse(interest_stocks) : interest_stocks;
+
       // body에 관심 주식을 넣은 경우
-      if (interest_stocks && interest_stocks.length > 0) {
+      if (parse_stockList && parse_stockList.length > 0) {
         const interestStock = new InterestStock({ user_snsId: sns_id, user_email: email });
-        await interestStock.addStocks(interest_stocks);
+        await interestStock.addStocks(parse_stockList);
       }
 
       const user = new User({

@@ -186,8 +186,10 @@ export const updateInterestStockOrder = async (req, res) => {
       return;
     }
 
+    const parse_stockList = typeof stockList === "string" ? JSON.parse(stockList) : stockList;
+
     // DB에 저장된 값과 body로 보낸 값의 리스트 길이가 맞지 않는 경우
-    if (interestStock.stock_list.length !== stockList.length) {
+    if (interestStock.stock_list.length !== parse_stockList.length) {
       isError = true;
       res.status(400).json({ ok: false, message: "순서를 변경할 수 없습니다." });
       return;
@@ -196,7 +198,7 @@ export const updateInterestStockOrder = async (req, res) => {
     const stockNames = interestStock.stock_list.map((s) => s.stockName);
 
     // 중복된 값 확인
-    const hasDuplicates = new Set(stockList).size !== stockList.length;
+    const hasDuplicates = new Set(parse_stockList).size !== parse_stockList.length;
     if (hasDuplicates) {
       isError = true;
       res.status(400).json({ ok: false, message: "중복된 주식 값이 있습니다." });
@@ -204,7 +206,7 @@ export const updateInterestStockOrder = async (req, res) => {
     }
 
     // 모든 값이 존재하는지 확인
-    stockList.forEach((stockName) => {
+    parse_stockList.forEach((stockName) => {
       if (!stockNames.includes(stockName)) {
         isError = true;
         res.status(400).json({ ok: false, message: `${stockName} 주식은 DB에 존재하지 않는 주식입니다.` });
@@ -214,7 +216,7 @@ export const updateInterestStockOrder = async (req, res) => {
 
     // 주식 리스트 순서 업데이트
     if (!isError) {
-      await interestStock.updateStockOrder(stockList);
+      await interestStock.updateStockOrder(parse_stockList);
       res.status(200).json({ ok: true, data: interestStock.stock_list });
     }
   } catch (err) {

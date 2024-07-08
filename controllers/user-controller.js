@@ -153,15 +153,17 @@ export const updateUserProfile = [
       // 유저 관심주식 조회
       const interestStock = await InterestStock.findOne({ user_snsId: user.sns_id, is_delete: false });
 
+      const parse_stockList = typeof interest_stocks === "string" ? JSON.parse(interest_stocks) : interest_stocks;
+
       // body에 관심 주식을 넣은 경우
-      if (interest_stocks && interest_stocks.length > 0) {
+      if (parse_stockList && parse_stockList.length > 0) {
         // DB에 유저 관심 주식이 있는 경우
         if (interestStock) {
-          await interestStock.updateStockList(interest_stocks);
+          await interestStock.updateStockList(parse_stockList);
         }
         // DB에 유저 관심 주식이 없을 경우 새로 생성
         else {
-          await interestStock.addStocks(interest_stocks);
+          await interestStock.addStocks(parse_stockList);
         }
       }
 
