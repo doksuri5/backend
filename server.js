@@ -1,10 +1,13 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import session from "express-session";
 import cookieParser from "cookie-parser";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import MongoStore from "connect-mongo";
+
 import connectDB from "./database/db.js";
 import { CronJob } from "cron";
 import { getSearchNews } from "./cron-job/search-news.js";
@@ -56,7 +59,23 @@ app.use(
     credentials: true,
   })
 );
-app.use(cookieParser());
+
+app.use(cookieParser(process.env.COOKIE_SECRET));
+const sessionOption = {
+  secret: process.env.COOKIE_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+  cookie: {
+    httpOnly: true,
+    secure: false, // 배포시 true
+  },
+};
+if (process.env.NODE_ENV === "production") {
+  sessionOption.proxy = true;
+  sessionOption.cookie.secure = true;
+}
+app.use(session(sessionOption));
 
 // routes 파일들을 모두 읽어서 각각을 Express 앱에 등록
 const routesPath = path.join(__dirname, "/routes"); // routes 파일들이 있는 디렉토리 경로
