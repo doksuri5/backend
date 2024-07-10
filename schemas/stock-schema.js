@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 
 const StockSchema = new mongoose.Schema({
-  stockName: { type: String, required: true, unique: true },
+  reutersCode: { type: String, required: true, unique: true },
   symbolCode: { type: String, required: true },
-  reutersCode: { type: String, required: true },
-  price: { type: Number, required: true },
+  stockName: { type: String, required: true },
+  stockNameEng: { type: String, required: true },
+  closePrice: { type: Number, required: true },
   nationType: { type: String, required: true },
   compareToPreviousClosePrice: { type: Number, required: true },
   fluctuationsRatio: { type: Number, required: true },
