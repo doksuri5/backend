@@ -189,6 +189,7 @@ export const registerSocial = [
   },
 ];
 
+// 비밀번호 찾기
 export const findPassword = async (req, res) => {
   const { name, email } = req.body;
 
@@ -198,6 +199,17 @@ export const findPassword = async (req, res) => {
     const user = await User.findOne({ name, email, is_delete: false });
     if (!user) {
       res.status(404).json({ ok: false, message: "가입되지 않은 이메일입니다." });
+      return;
+    }
+
+    if (user.login_type !== "local") {
+      res.status(200).json({
+        ok: false,
+        data: {
+          login_type: user.login_type,
+          message: "소셜로그인 가입된 이메일입니다.",
+        },
+      });
       return;
     }
 
@@ -224,6 +236,7 @@ export const findPassword = async (req, res) => {
   }
 };
 
+// 로그인
 export const login = async (req, res) => {
   try {
     const { sns_id, email, language, autoLogin } = req.body;
@@ -251,6 +264,7 @@ export const login = async (req, res) => {
   }
 };
 
+// 로그아웃
 export const logout = async (req, res) => {
   req.session.destroy((err) => {
     if (err) {
