@@ -32,7 +32,6 @@ export const getInterestStocks = async (req, res) => {
     is_delete: false,
   });
 
-  console.log(interestStock);
   if (interestStock) {
     interestStock.stock_list.sort((a, b) => a.order - b.order);
 
