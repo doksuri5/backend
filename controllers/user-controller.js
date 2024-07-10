@@ -225,3 +225,39 @@ export const updateUserInfo = async (req, res) => {
     res.status(500).json({ ok: false, message: err.message });
   }
 };
+
+// 유저 조회
+export const getUser = async (req, res) => {
+  try {
+    const { user_email } = req.params;
+
+    // 데이터베이스 연결
+    await connectDB().catch((err) => {
+      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+      return;
+    });
+
+    const user = await User.findOne(
+      { email: user_email, is_delete: false },
+      {
+        name: 1,
+        email: 1,
+        birth: 1,
+        phone: 1,
+        gender: 1,
+        profile: 1,
+        nickname: 1,
+        login_type: 1,
+      }
+    );
+
+    if (!user) {
+      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      return;
+    }
+
+    res.status(200).json({ ok: true, data: user });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
