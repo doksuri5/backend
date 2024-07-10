@@ -5,39 +5,12 @@ import connectDB from "../database/db.js";
 import User from "../schemas/user-schema.js";
 import Cert from "../schemas/cert-schema.js";
 import InterestStock from "../schemas/interestStock-schema.js";
+import Log from "../schemas/log-schema.js";
 
 import uploadProfileImg from "../middleware/imageUpload.js";
 import { send_main_func } from "../utils/emailSendUtil.js";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
 import { generatePassword } from "../utils/generatePassword.js";
-
-// 아이디(이메일) 중복 확인 (프론트로 변경)
-export const duplicatedEmail = async (req, res) => {
-  try {
-    const { email } = req.params;
-
-    // 이메일을 입력하지 않은 경우
-    if (!email) {
-      res.status(400).json({ ok: false, message: "이메일을 입력해주세요." });
-      return;
-    }
-
-    // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-      return;
-    });
-
-    const user = await User.findOne({ email: email, is_delete: false }).exec();
-    if (user) {
-      res.status(200).json({ ok: true, data: user.email });
-    } else {
-      res.status(200).json({ ok: true, data: null });
-    }
-  } catch (err) {
-    res.status(500).json({ ok: false, message: err.message });
-  }
-};
 
 // 인증코드 이메일 발송 (탈퇴여부 체크)
 export const sendEmail = async (req, res) => {
@@ -249,4 +222,42 @@ export const findPassword = async (req, res) => {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
   }
+};
+
+export const login = async (req, res) => {
+  try {
+    const { sns_id, email, language, autoLogin } = req.body;
+
+    // autoLogin에 따라 세션의 maxAge 설정
+    if (autoLogin) {
+      // req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7일 (영속 쿠키 ms 단위)
+      req.session.cookie.maxAge = 30 * 1000; // 30초 (테스트)
+    } else {
+      req.session.cookie.maxAge = undefined; // 세션 쿠키
+    }
+
+    req.session.snsId = sns_id;
+    req.session.email = email;
+    req.session.language = language;
+
+    // 로그 추가
+    await connectDB();
+    await Log.create({ user_email: email });
+
+    res.status(200).json({ ok: true, message: "로그인 성공" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+export const logout = async (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.log(err);
+      res.status(500).json({ ok: false, message: "서버 세션 삭제 오류" });
+    } else {
+      res.status(200).json({ ok: true, message: "로그아웃 " });
+    }
+  });
 };
