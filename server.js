@@ -11,12 +11,12 @@ import MongoStore from "connect-mongo";
 import connectDB from "./database/db.js";
 
 // import { CronJob } from "cron";
-// import { getSearchNews } from "./cron-job/search-news.js";
+// import { getStocks } from "./cron-job/get-stocks.js";
 
 // const job = new CronJob(
 //   "* * * * *",
 //   function () {
-//     getSearchNews("애플 주식");
+//     getStocks();
 //   },
 //   null,
 //   false,

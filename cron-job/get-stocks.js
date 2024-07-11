@@ -27,14 +27,14 @@ export const getStocks = async () => {
         const data = item.value;
 
         const selectedData = {
-          stockName: data.stockName,
-          stockNameEng: data.stockNameEng,
-          symbolCode: data.symbolCode,
-          reutersCode: data.reutersCode,
-          closePrice: data.closePrice,
-          nationType: data.nationType,
-          compareToPreviousClosePrice: data.compareToPreviousClosePrice,
-          fluctuationsRatio: data.fluctuationsRatio,
+          stock_name: data.stockName,
+          stock_name_eng: data.stockNameEng,
+          symbol_code: data.symbolCode,
+          reuters_code: data.reutersCode,
+          close_price: data.closePrice,
+          nation_type: data.nationType,
+          compare_to_previous_close_price: data.compareToPreviousClosePrice,
+          fluctuations_ratio: data.fluctuationsRatio,
         };
 
         return selectedData;
@@ -42,7 +42,7 @@ export const getStocks = async () => {
 
     const bulkOps = stocks.map((stock) => ({
       updateOne: {
-        filter: { reutersCode: stock.reutersCode },
+        filter: { reuters_code: stock.reuters_code },
         update: { $set: stock },
         upsert: true, // If the stock does not exist, insert it
       },
