@@ -240,6 +240,7 @@ export const getUser = async (req, res) => {
     const user = await User.findOne(
       { email: user_email, is_delete: false },
       {
+        sns_id: 1,
         name: 1,
         email: 1,
         birth: 1,
@@ -256,7 +257,21 @@ export const getUser = async (req, res) => {
       return;
     }
 
-    res.status(200).json({ ok: true, data: user });
+    const interestStock = await InterestStock.findOne({
+      user_snsId: user.sns_id,
+      is_delete: false,
+    });
+
+    const { sns_id, ...userWithoutSnsId } = user.toObject();
+
+    if (interestStock) {
+      interestStock.stock_list.sort((a, b) => a.order - b.order);
+
+      const reutersCodeList = interestStock.stock_list.map((stock) => stock.reuters_code);
+      res.status(200).json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: reutersCodeList } });
+    } else {
+      res.status(200).json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: null } }); // 없으면 null 반환
+    }
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
   }
