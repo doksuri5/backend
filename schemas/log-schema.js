@@ -3,6 +3,7 @@ import { getKoreanTime } from "../utils/getKoreanTime.js";
 
 const LogSchema = new mongoose.Schema({
   user_email: { type: String, required: true },
+  login_type: { type: String, required: true },
   created_at: { type: Date, default: () => getKoreanTime() },
 });
 

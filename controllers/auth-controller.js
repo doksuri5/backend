@@ -239,23 +239,23 @@ export const findPassword = async (req, res) => {
 // 로그인
 export const login = async (req, res) => {
   try {
-    const { sns_id, email, language, autoLogin } = req.body;
+    const { sns_id, email, autoLogin, login_type } = req.body;
 
     // autoLogin에 따라 세션의 maxAge 설정
     if (autoLogin) {
-      // req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7일 (영속 쿠키 ms 단위)
-      req.session.cookie.maxAge = 30 * 1000; // 30초 (테스트)
+      req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7일 (영속 쿠키 ms 단위)
+      // req.session.cookie.maxAge = 30 * 1000; // 30초 (테스트)
     } else {
       req.session.cookie.maxAge = undefined; // 세션 쿠키
     }
 
     req.session.snsId = sns_id;
     req.session.email = email;
-    req.session.language = language;
+    req.session.login_type = login_type;
 
     // 로그 추가
     await connectDB();
-    await Log.create({ user_email: email });
+    await Log.create({ user_email: email, login_type: login_type });
 
     res.status(200).json({ ok: true, message: "로그인 성공" });
   } catch (err) {
