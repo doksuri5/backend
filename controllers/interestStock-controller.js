@@ -36,7 +36,7 @@ export const getInterestStocks = async (req, res) => {
     interestStock.stock_list.sort((a, b) => a.order - b.order);
 
     const reutersCodeList = interestStock.stock_list.map(
-      (stock) => stock.reutersCode
+      (stock) => stock.reuters_code
     );
     res.status(200).json({ ok: true, data: reutersCodeList }); // 없으면 null 반환
   } else {
@@ -66,15 +66,15 @@ export const getDetailInterestStocks = async (req, res) => {
 
     if (interestStock) {
       const reutersCodes = interestStock.stock_list.map(
-        (stock) => stock.reutersCode
+        (stock) => stock.reuters_code
       );
 
       // 관심 주식 리스트의 주식 이름을 가지고 주식 스키마에서 정보 가져오기
-      const stocks = await Stock.find({ reutersCode: { $in: reutersCodes } });
+      const stocks = await Stock.find({ reuters_code: { $in: reutersCodes } });
 
       const mergeStockList = interestStock.stock_list.map((stockItem) => {
         const stockDetail = _.find(stocks, {
-          reutersCode: stockItem.reutersCode,
+          reuters_code: stockItem.reuters_code,
         });
         return {
           ...stockItem.toObject(), // toObject는 몽구스 문서 객체를 순수 자바스크립트 객체로 변환해줌
@@ -101,7 +101,7 @@ export const insertInterestStock = async (req, res) => {
     // 유저 쿠키 값을 가지고 sns_id 값 가져오기
     const sns_id = "7eb62ea2-aaa2-4901-9ff8-bed16277a3be";
 
-    const { reutersCode } = req.body;
+    const { reuters_code } = req.body;
 
     // 데이터베이스 연결
     await connectDB().catch((err) => {
@@ -133,7 +133,7 @@ export const insertInterestStock = async (req, res) => {
     }
 
     // 관심 주식 추가
-    await interestStock.addStock(reutersCode);
+    await interestStock.addStock(reuters_code);
 
     res.status(200).json({ ok: true, data: interestStock.stock_list });
   } catch (err) {
@@ -146,7 +146,7 @@ export const insertInterestStock = async (req, res) => {
 // 관심 주식 1개 삭제
 export const deleteInterestStock = async (req, res) => {
   try {
-    const { reutersCode } = req.params;
+    const { reuters_code } = req.params;
 
     // 유저 쿠키 값을 가지고 sns_id 값 가져오기
     const sns_id = "7eb62ea2-aaa2-4901-9ff8-bed16277a3be";
@@ -174,11 +174,11 @@ export const deleteInterestStock = async (req, res) => {
       is_delete: false,
     });
     const findStock = interestStock.stock_list.find(
-      (item) => item.reutersCode === reutersCode
+      (item) => item.reuters_code === reuters_code
     );
 
     if (findStock) {
-      await interestStock.removeStock(reutersCode);
+      await interestStock.removeStock(reuters_code);
       res.status(200).json({ ok: true, data: interestStock.stock_list });
     } else {
       res
@@ -246,7 +246,7 @@ export const updateInterestStockOrder = async (req, res) => {
       return;
     }
 
-    const reutersCodes = interestStock.stock_list.map((s) => s.reutersCode);
+    const reutersCodes = interestStock.stock_list.map((s) => s.reuters_code);
 
     // 중복된 값 확인
     const hasDuplicates =
@@ -260,12 +260,12 @@ export const updateInterestStockOrder = async (req, res) => {
     }
 
     // 모든 값이 존재하는지 확인
-    parse_stockList.forEach((reutersCode) => {
-      if (!reutersCodes.includes(reutersCode)) {
+    parse_stockList.forEach((reuters_code) => {
+      if (!reuters_code.includes(reuters_code)) {
         isError = true;
         res.status(400).json({
           ok: false,
-          message: `${reutersCode} 주식은 DB에 존재하지 않는 주식입니다.`,
+          message: `${reuters_code} 주식은 DB에 존재하지 않는 주식입니다.`,
         });
         return;
       }
