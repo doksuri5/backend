@@ -276,3 +276,61 @@ export const getUser = async (req, res) => {
     res.status(500).json({ ok: false, message: err.message });
   }
 };
+
+// 비밀번호 인증 API
+export const passwordCert = async (req, res) => {
+  try {
+    const snsId = req.snsId;
+    const { email, password } = req.body;
+
+    // 데이터베이스 연결
+    await connectDB().catch((err) => {
+      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+      return;
+    });
+
+    const user = await User.findOne({ sns_id: snsId, is_delete: false }).select("+password");
+
+    if (!user) {
+      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      return;
+    }
+
+    if (user.email !== email) {
+      res
+        .status(401)
+        .json({ ok: false, message: "현재 사용자가 다른 이메일을 사용하고 있습니다. 다시 로그인 해주세요." });
+      return;
+    }
+
+    if (password !== "" && (await bcrypt.compare(password, user.password))) {
+      res.status(200).json({ ok: true, message: "비밀번호 인증 완료" });
+    } else {
+      res.status(200).json({ ok: false, message: "비밀번호 인증 실패" });
+    }
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+// 이메일 인증 API
+export const emailCert = async (req, res) => {
+  try {
+    const snsId = req.snsId;
+    const { email } = req.body;
+
+    // 데이터베이스 연결
+    await connectDB().catch((err) => {
+      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+      return;
+    });
+
+    // 데이터베이스 연결
+    await connectDB().catch((err) => {
+      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+      return;
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
