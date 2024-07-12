@@ -10,37 +10,31 @@ import MongoStore from "connect-mongo";
 
 import connectDB from "./database/db.js";
 import { CronJob } from "cron";
-import { getSearchNews } from "./cron-job/search-news.js";
-
-const test = ["애플 주식", "마이크로소프트 주식", "아마존 주식"];
-function getRandomElement(arr) {
-  const randomIndex = Math.floor(Math.random() * arr.length);
-  return arr[randomIndex];
-}
+import { main } from "./cron-job/search-news.js";
 
 // 작업 정의
 const executeTask = async () => {
-  const searchName = getRandomElement(test);
   console.log("===================================================");
-  console.log(searchName);
-  console.log(await getSearchNews(searchName));
+  console.log(await main());
 };
 
-(async () => {
-  await executeTask();
+await executeTask();
 
-  const job = new CronJob(
-    "*/1 * * * *",
-    executeTask,
-    () => {
-      console.log("작업이 완료되었습니다.");
-    },
-    true, // true일 경우 서버가 재시작 되면 자동으로 다시 실행
-    "Asia/Seoul"
-  );
+// (async () => {
+//   await executeTask();
 
-  job.start();
-})();
+//   const job = new CronJob(
+//     "*/1 * * * *",
+//     executeTask,
+//     () => {
+//       console.log("작업이 완료되었습니다.");
+//     },
+//     true, // true일 경우 서버가 재시작 되면 자동으로 다시 실행
+//     "Asia/Seoul"
+//   );
+
+//   job.start();
+// })();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

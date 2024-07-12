@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 
 const NewsSchema = new mongoose.Schema({
-  title: {
+  index: { type: String, required: true },
+  stock_name: { type: String, required: true },
+  publisher: {
     type: [
       {
         ko: String,
@@ -13,9 +15,8 @@ const NewsSchema = new mongoose.Schema({
     ],
     required: true,
   },
-  image: { type: String },
-  hit: { type: Number, required: true, default: 0 },
-  publisher: {
+  thumbnail_url: { type: String, required: true },
+  title: {
     type: [
       {
         ko: String,
@@ -39,6 +40,7 @@ const NewsSchema = new mongoose.Schema({
     ],
     required: true,
   },
+  published_time: { type: String, required: true },
   ai_summary: {
     type: [
       {
@@ -50,7 +52,9 @@ const NewsSchema = new mongoose.Schema({
       },
     ],
   },
-  news_date: { type: String, required: true },
+  view: { type: Number, default: 0 },
+  relative_stock: { type: [String] },
+  count: { type: Number, default: 0 },
 });
 
 const News = mongoose.models.News || mongoose.model("News", NewsSchema);
