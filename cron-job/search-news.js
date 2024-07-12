@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer";
+import * as puppeteer from "puppeteer";
 import { formatDate } from "../utils/formatDate.js";
 import * as xlsx from "xlsx";
 
@@ -37,78 +37,91 @@ const scrollPage = async (page) => {
 const getTranslatedContent = async (link, language) => {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--window-size=1920,1080", "--disable-notifications", "--no-sandbox"],
   });
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1080, height: 1080 });
 
   await page.goto(link, { waitUntil: "networkidle2" });
+  await page.setRequestInterception(true);
+  page.on("request", (req) => {
+    // 이미지, 스타일, 폰트 가져오지 않기
+    if (req.resourceType() === "image" || req.resourceType() === "stylesheet" || req.resourceType() === "font") {
+      req.abort();
+    } else {
+      req.continue();
+    }
+  });
+
   await page.click(language.buttonSelector);
-  await delay(5000);
+  await delay(3000);
   await scrollPage(page);
 
-  const translatedResults = await page.evaluate(
-    (language, stock_list) => {
-      const tags = document.querySelectorAll("#section-list > ul > li");
-      const result = [];
+  const tags = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll("#section-list > ul > li"))
+      .slice(0, 5)
+      .map((t) => ({
+        title: t.querySelector(".titles a")?.textContent.trim(),
+        thumbnail_url: t.querySelector("a > img")?.src,
+        description: t.querySelector(".lead a")?.textContent.trim(),
+        link: t.querySelector(".titles a")
+          ? `https://news.einfomax.co.kr${t.querySelector(".titles a").getAttribute("href")}`
+          : null,
+        published_time: t.querySelector(".byline em:last-child")?.textContent,
+      }));
+  });
 
-      const extractStockSymbols = (text) => {
-        const stocks = new Set();
-        stock_list.forEach((stock) => {
-          const [key, value] = Object.entries(stock)[0];
-          if (text.includes(key)) {
-            stocks.add(value);
-          }
-        });
-        return Array.from(stocks);
-      };
+  const result = [];
+  const extractStockSymbols = (text) => {
+    const stocks = new Set();
+    stock_list.forEach((stock) => {
+      const [key, value] = Object.entries(stock)[0];
+      if (text.includes(key)) {
+        stocks.add(value);
+      }
+    });
+    return Array.from(stocks);
+  };
 
-      let publisher = "";
-      if (language.lang === "ko") publisher = "연합 인포맥스";
-      if (language.lang === "en") publisher = "Yonhap Infomax";
-      if (language.lang === "jp") publisher = "連合インフォマックス";
-      if (language.lang === "ch") publisher = " 韩联社 Infomax";
+  const indexCount = {};
 
-      const indexCount = {};
+  for (const t of tags) {
+    if (t.thumbnail_url && t.description && t.link) {
+      await page.goto(t.link, { waitUntil: "networkidle2" });
+      await page.setRequestInterception(true);
 
-      tags.forEach((t) => {
-        const title = t?.querySelector(".titles a")?.textContent.trim();
-        const thumbnail_url = t?.querySelector("a > img")?.src;
-        const description = t?.querySelector(".lead a")?.textContent.trim();
-        const linkTag = t?.querySelector(".titles a");
-        const link = linkTag ? `https://news.einfomax.co.kr${linkTag.getAttribute("href")}` : null;
-        const indexMatch = link ? link.match(/idxno=(\d+)/) : null;
-        const index = indexMatch ? indexMatch[1] : null;
-
-        if (thumbnail_url && description && link) {
-          let relative_stock = [];
-          if (language.lang === "ko") {
-            relative_stock = extractStockSymbols(title + " " + description);
-          }
-          indexCount[index] = (indexCount[index] || 0) + 1;
-
-          result.push({
-            index,
-            publisher,
-            thumbnail_url,
-            title,
-            description,
-            published_time: t?.querySelector(".byline em:last-child")?.textContent,
-            link,
-            relative_stock: JSON.stringify(relative_stock),
-            count: indexCount[index],
-          });
-        }
+      const articleContent = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll("#article-view-content-div p"))
+          .map((p) => p.textContent.trim())
+          .filter((text) => text.length > 0)
+          .join("\n");
       });
-      return result;
-    },
-    language,
-    stock_list
-  );
+
+      let relative_stock = [];
+      if (language.lang === "ko") {
+        relative_stock = extractStockSymbols(t.title + " " + t.description + " " + articleContent);
+      }
+      const indexMatch = t.link.match(/idxno=(\d+)/);
+      const index = indexMatch ? indexMatch[1] : null;
+      indexCount[index] = (indexCount[index] || 0) + 1;
+
+      result.push({
+        index,
+        publisher: language.publisher,
+        thumbnail_url: t.thumbnail_url,
+        title: t.title,
+        description: t.description,
+        published_time: t.published_time,
+        link: t.link,
+        articleContent,
+        relative_stock: JSON.stringify(relative_stock),
+        count: indexCount[index],
+      });
+    }
+  }
 
   await browser.close();
-  return { lang: language.lang, data: translatedResults };
+  return { lang: language.lang, data: result };
 };
 
 const getSearchNews = async (query) => {
@@ -126,10 +139,10 @@ const getSearchNews = async (query) => {
   console.log(url);
 
   const languages = [
-    { lang: "ko", buttonSelector: ".translate-btn.kr" },
-    { lang: "en", buttonSelector: ".translate-btn.en" },
-    { lang: "jp", buttonSelector: ".translate-btn.jp" },
-    { lang: "ch", buttonSelector: ".translate-btn.cn" },
+    { lang: "ko", buttonSelector: ".translate-btn.kr", publisher: "연합 인포맥스" },
+    { lang: "en", buttonSelector: ".translate-btn.en", publisher: "Yonhap Infomax" },
+    { lang: "jp", buttonSelector: ".translate-btn.jp", publisher: "連合インフォマックス" },
+    { lang: "ch", buttonSelector: ".translate-btn.cn", publisher: "韩联社 Infomax" },
   ];
 
   const translatedContentPromises = languages.map((language) => getTranslatedContent(url, language));
@@ -146,7 +159,7 @@ const main = async () => {
   for (const query of queries) {
     const result = await getSearchNews(query);
     allResults.push(result);
-    await delay(5000); // 다음 query 진행 전에 5초 딜레이
+    await delay(3000); // 다음 query 진행 전에 5초 딜레이
   }
 
   // 엑셀 파일로 저장
