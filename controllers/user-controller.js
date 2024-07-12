@@ -4,10 +4,12 @@ import connectDB from "../database/db.js";
 import User from "../schemas/user-schema.js";
 import Withdraw from "../schemas/withdraw-schema.js";
 import InterestStock from "../schemas/interestStock-schema.js";
+import Cert from "../schemas/cert-schema.js";
 
 import uploadProfileImg from "../middleware/imageUpload.js";
 import deleteFileFromS3 from "../middleware/imageDelete.js";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
+import { send_main_func } from "../utils/emailSendUtil.js";
 
 // 전체 유저 조회 (테스트 용도)
 export const getAllUser = async (req, res) => {
@@ -313,7 +315,7 @@ export const passwordCert = async (req, res) => {
   }
 };
 
-// 이메일 인증 API
+// 이메일 인증 API (인증코드 발송)
 export const emailCert = async (req, res) => {
   try {
     const snsId = req.snsId;
@@ -325,11 +327,27 @@ export const emailCert = async (req, res) => {
       return;
     });
 
-    // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+    const user = await User.findOne({ sns_id: snsId, is_delete: false });
+    if (!user) {
+      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       return;
-    });
+    }
+
+    if (user.email !== email) {
+      res
+        .status(401)
+        .json({ ok: false, message: "현재 사용자가 다른 이메일을 사용하고 있습니다. 다시 로그인 해주세요." });
+      return;
+    }
+
+    // 인증 코드 생성 및 Cert 인스턴스 생성
+    const cert = new Cert({ user_email: email });
+    const code = cert.generateCode(); // 인증 코드 및 만료 시간 생성
+
+    await send_main_func({ type: "code", to: email, VALUE: code });
+    await cert.save();
+
+    res.status(200).json({ ok: true, message: "인증코드 전송 완료" });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
   }
