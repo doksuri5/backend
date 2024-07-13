@@ -48,11 +48,10 @@ app.use(
 if (process.env.NODE_ENV === "development") {
   morgan.token("headers", (req) => JSON.stringify(req.headers, null, 2));
   morgan.token("body", (req) => JSON.stringify(req.body, null, 2));
-  morgan.token("cookies", (req) => JSON.stringify(req.cookies, null, 2));
 
   app.use(
     morgan(
-      ":method :url :status :res[content-length] - :response-time ms\nHeaders: :headers\nCookies: :cookies\nBody: :body\n"
+      ":method :url :status :res[content-length] - :response-time ms\nHeaders: :headers\nBody: :body\n"
     )
   );
 }
