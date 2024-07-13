@@ -34,15 +34,13 @@ const scrollPage = async (page) => {
   });
 };
 
-const getTranslatedContent = async (link, language) => {
+const getTranslatedContent = async (link, language, query) => {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
   });
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1080, height: 1080 });
-
-  await page.goto(link, { waitUntil: "networkidle2" });
   await page.setRequestInterception(true);
   page.on("request", (req) => {
     // 이미지, 스타일, 폰트 가져오지 않기
@@ -53,13 +51,15 @@ const getTranslatedContent = async (link, language) => {
     }
   });
 
+  await page.goto(link, { waitUntil: "networkidle2" });
+
   await page.click(language.buttonSelector);
   await delay(3000);
   await scrollPage(page);
 
   const tags = await page.evaluate(() => {
     return Array.from(document.querySelectorAll("#section-list > ul > li"))
-      .slice(0, 5)
+      .slice(0, 2)
       .map((t) => ({
         title: t.querySelector(".titles a")?.textContent.trim(),
         thumbnail_url: t.querySelector("a > img")?.src,
@@ -91,15 +91,21 @@ const getTranslatedContent = async (link, language) => {
       await page.setRequestInterception(true);
 
       const articleContent = await page.evaluate(() => {
-        return Array.from(document.querySelectorAll("#article-view-content-div p"))
+        const content = Array.from(document.querySelectorAll("#article-view-content-div p"))
           .map((p) => p.textContent.trim())
           .filter((text) => text.length > 0)
           .join("\n");
+
+        const contentImg = document.querySelector("#article-view-content-div img")?.src || "";
+
+        return { content, contentImg };
       });
+
+      const { content, contentImg } = articleContent;
 
       let relative_stock = [];
       if (language.lang === "ko") {
-        relative_stock = extractStockSymbols(t.title + " " + t.description + " " + articleContent);
+        relative_stock = extractStockSymbols(t.title + " " + t.description + " " + content);
       }
       const indexMatch = t.link.match(/idxno=(\d+)/);
       const index = indexMatch ? indexMatch[1] : null;
@@ -107,13 +113,15 @@ const getTranslatedContent = async (link, language) => {
 
       result.push({
         index,
+        stock_name: query,
         publisher: language.publisher,
         thumbnail_url: t.thumbnail_url,
         title: t.title,
         description: t.description,
         published_time: t.published_time,
         link: t.link,
-        articleContent,
+        content,
+        contentImg,
         relative_stock: JSON.stringify(relative_stock),
         count: indexCount[index],
       });
@@ -140,12 +148,12 @@ const getSearchNews = async (query) => {
 
   const languages = [
     { lang: "ko", buttonSelector: ".translate-btn.kr", publisher: "연합 인포맥스" },
-    { lang: "en", buttonSelector: ".translate-btn.en", publisher: "Yonhap Infomax" },
-    { lang: "jp", buttonSelector: ".translate-btn.jp", publisher: "連合インフォマックス" },
-    { lang: "ch", buttonSelector: ".translate-btn.cn", publisher: "韩联社 Infomax" },
+    // { lang: "en", buttonSelector: ".translate-btn.en", publisher: "Yonhap Infomax" },
+    // { lang: "jp", buttonSelector: ".translate-btn.jp", publisher: "連合インフォマックス" },
+    // { lang: "ch", buttonSelector: ".translate-btn.cn", publisher: "韩联社 Infomax" },
   ];
 
-  const translatedContentPromises = languages.map((language) => getTranslatedContent(url, language));
+  const translatedContentPromises = languages.map((language) => getTranslatedContent(url, language, query));
 
   const translatedContents = await Promise.all(translatedContentPromises);
 
@@ -154,7 +162,8 @@ const getSearchNews = async (query) => {
 };
 
 const main = async () => {
-  const queries = ["애플", "마이크로소프트", "아마존", "테슬라", "유니티", "구글"];
+  // const queries = ["애플", "마이크로소프트", "아마존", "테슬라", "유니티", "구글"];
+  const queries = ["애플"];
   const allResults = [];
   for (const query of queries) {
     const result = await getSearchNews(query);

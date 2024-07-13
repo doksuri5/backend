@@ -4,57 +4,47 @@ const NewsSchema = new mongoose.Schema({
   index: { type: String, required: true },
   stock_name: { type: String, required: true },
   publisher: {
-    type: [
-      {
-        ko: String,
-        en: String,
-        ch: String,
-        jp: String,
-        fr: String,
-      },
-    ],
-    required: true,
+    ko: { type: String, required: true },
+    en: { type: String, required: true },
+    ch: { type: String, required: true },
+    jp: { type: String, required: true },
+    fr: { type: String, required: true },
   },
   thumbnail_url: { type: String, required: true },
   title: {
-    type: [
-      {
-        ko: String,
-        en: String,
-        ch: String,
-        jp: String,
-        fr: String,
-      },
-    ],
-    required: true,
+    ko: { type: String, required: true },
+    en: { type: String, required: true },
+    ch: { type: String, required: true },
+    jp: { type: String, required: true },
+    fr: { type: String, required: true },
   },
   description: {
-    type: [
-      {
-        ko: String,
-        en: String,
-        ch: String,
-        jp: String,
-        fr: String,
-      },
-    ],
-    required: true,
+    ko: { type: String, required: true },
+    en: { type: String, required: true },
+    ch: { type: String, required: true },
+    jp: { type: String, required: true },
+    fr: { type: String, required: true },
   },
   published_time: { type: String, required: true },
-  ai_summary: {
-    type: [
-      {
-        ko: String,
-        en: String,
-        ch: String,
-        jp: String,
-        fr: String,
-      },
-    ],
+  link: { type: String, required: true },
+  content: {
+    ko: { type: String },
+    en: { type: String },
+    ch: { type: String },
+    jp: { type: String },
+    fr: { type: String },
   },
-  view: { type: Number, default: 0 },
+  content_img: { type: String, required: true },
   relative_stock: { type: [String] },
   count: { type: Number, default: 0 },
+  ai_summary: {
+    ko: { type: String },
+    en: { type: String },
+    ch: { type: String },
+    jp: { type: String },
+    fr: { type: String },
+  },
+  view: { type: Number, default: 0 },
 });
 
 const News = mongoose.models.News || mongoose.model("News", NewsSchema);
