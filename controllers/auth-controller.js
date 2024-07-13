@@ -43,7 +43,9 @@ export const verifyCode = async (req, res) => {
   const { email, code } = req.body;
   try {
     await connectDB();
-    const cert = await Cert.findOne({ user_email: email }).sort({ created_at: -1 });
+    const cert = await Cert.findOne({ user_email: email }).sort({
+      created_at: -1,
+    });
 
     if (!cert) {
       res.status(404).json({ ok: false, message: "인증 요청이 없습니다." });
@@ -53,7 +55,10 @@ export const verifyCode = async (req, res) => {
     const isValid = cert.verifyCode(code);
 
     if (!isValid) {
-      res.status(400).json({ ok: false, message: "인증 코드가 유효하지 않거나 만료되었습니다." });
+      res.status(400).json({
+        ok: false,
+        message: "인증 코드가 유효하지 않거나 만료되었습니다.",
+      });
       return;
     }
 
@@ -69,18 +74,32 @@ export const register = [
   uploadProfileImg.single("profile"),
   async (req, res) => {
     try {
-      const { name, email, password, birth, phone, gender, nickname, interest_stocks, language = "ko" } = req.body;
+      const {
+        name,
+        email,
+        password,
+        birth,
+        phone,
+        gender,
+        nickname,
+        interest_stocks,
+        language = "ko",
+      } = req.body;
 
       // 데이터베이스 연결
       await connectDB().catch((err) => {
-        res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+        res
+          .status(500)
+          .json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
         return;
       });
 
       // 동일한 이메일을 가진 사용자가 이미 존재하는지 확인 (탈퇴여부 체크)
       const existingUser = await User.findOne({ email, is_delete: false });
       if (existingUser) {
-        res.status(400).json({ ok: false, message: "이미 회원가입이 된 이메일입니다." });
+        res
+          .status(400)
+          .json({ ok: false, message: "이미 회원가입이 된 이메일입니다." });
         return;
       }
 
@@ -93,10 +112,16 @@ export const register = [
       // 유저 sns_id 생성
       const sns_id = uuid();
 
-      const parse_stockList = typeof interest_stocks === "string" ? JSON.parse(interest_stocks) : interest_stocks;
+      const parse_stockList =
+        typeof interest_stocks === "string"
+          ? JSON.parse(interest_stocks)
+          : interest_stocks;
       // body에 관심 주식을 넣은 경우
       if (parse_stockList && parse_stockList.length > 0) {
-        const interestStock = new InterestStock({ user_snsId: sns_id, user_email: email });
+        const interestStock = new InterestStock({
+          user_snsId: sns_id,
+          user_email: email,
+        });
         await interestStock.addStocks(parse_stockList);
       }
 
@@ -144,25 +169,35 @@ export const registerSocial = [
 
       // 데이터베이스 연결
       await connectDB().catch((err) => {
-        res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+        res
+          .status(500)
+          .json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
         return;
       });
 
       // 동일한 이메일을 가진 사용자가 이미 존재하는지 확인 (탈퇴여부 체크)
       const existingUser = await User.findOne({ email, is_delete: false });
       if (existingUser) {
-        res.status(400).json({ ok: false, message: "이미 회원가입이 된 이메일입니다." });
+        res
+          .status(400)
+          .json({ ok: false, message: "이미 회원가입이 된 이메일입니다." });
         return;
       }
 
       // 파일 이름
       const profile_img_name = req.file ? `${req.file.key}` : "";
 
-      const parse_stockList = typeof interest_stocks === "string" ? JSON.parse(interest_stocks) : interest_stocks;
+      const parse_stockList =
+        typeof interest_stocks === "string"
+          ? JSON.parse(interest_stocks)
+          : interest_stocks;
 
       // body에 관심 주식을 넣은 경우
       if (parse_stockList && parse_stockList.length > 0) {
-        const interestStock = new InterestStock({ user_snsId: sns_id, user_email: email });
+        const interestStock = new InterestStock({
+          user_snsId: sns_id,
+          user_email: email,
+        });
         await interestStock.addStocks(parse_stockList);
       }
 
@@ -198,7 +233,9 @@ export const findPassword = async (req, res) => {
 
     const user = await User.findOne({ name, email, is_delete: false });
     if (!user) {
-      res.status(404).json({ ok: false, message: "가입되지 않은 이메일입니다." });
+      res
+        .status(404)
+        .json({ ok: false, message: "가입되지 않은 이메일입니다." });
       return;
     }
 
