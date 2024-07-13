@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import MongoStore from "connect-mongo";
+import morgan from "morgan";
 
 import connectDB from "./database/db.js";
 
@@ -35,6 +36,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const app = express();
+
 app.use(express.json());
 app.use(
   cors({
@@ -42,6 +44,18 @@ app.use(
     credentials: true,
   })
 );
+
+if (process.env.NODE_ENV === "development") {
+  morgan.token("headers", (req) => JSON.stringify(req.headers, null, 2));
+  morgan.token("body", (req) => JSON.stringify(req.body, null, 2));
+  morgan.token("cookies", (req) => JSON.stringify(req.cookies, null, 2));
+
+  app.use(
+    morgan(
+      ":method :url :status :res[content-length] - :response-time ms\nHeaders: :headers\nCookies: :cookies\nBody: :body\n"
+    )
+  );
+}
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
 const sessionOption = {
@@ -54,6 +68,7 @@ const sessionOption = {
     secure: false, // 배포시 true
   },
 };
+
 if (process.env.NODE_ENV === "production") {
   sessionOption.proxy = true;
   sessionOption.cookie.secure = true;
