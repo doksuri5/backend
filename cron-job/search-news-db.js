@@ -145,7 +145,11 @@ const getSearchNews = async (query) => {
   const todayFormatted = formatDate(today);
   const yearStartFormatted = formatDate(yearStart);
 
-  const url = `https://news.einfomax.co.kr/news/articleList.html?page=1&sc_section_code=S1N21&sc_area=A&sc_level=&sc_article_type=&sc_sdate=${yearStartFormatted}&sc_edate=${todayFormatted}&sc_serial_number=&sc_word=${encodeURI(
+  // sc_section_code=S1N21 (해외주식) 빈 값이면 전체
+  // sc_area=A (검색영역 A: 전체, T: 제목+부제목, B: 본문)
+  // sc_order_by=E
+  // view_type=sm
+  const url = `https://news.einfomax.co.kr/news/articleList.html?page=1&sc_section_code=&sc_area=A&sc_level=&sc_article_type=&sc_sdate=${yearStartFormatted}&sc_edate=${todayFormatted}&sc_serial_number=&sc_word=${encodeURI(
     query
   )}&box_idxno=&sc_order_by=E&view_type=sm`;
 
