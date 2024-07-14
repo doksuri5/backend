@@ -4,10 +4,12 @@ import connectDB from "../database/db.js";
 import User from "../schemas/user-schema.js";
 import Withdraw from "../schemas/withdraw-schema.js";
 import InterestStock from "../schemas/interestStock-schema.js";
+import Cert from "../schemas/cert-schema.js";
 
 import uploadProfileImg from "../middleware/imageUpload.js";
 import deleteFileFromS3 from "../middleware/imageDelete.js";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
+import { send_main_func } from "../utils/emailSendUtil.js";
 
 // 전체 유저 조회 (테스트 용도)
 export const getAllUser = async (req, res) => {
@@ -240,6 +242,7 @@ export const getUser = async (req, res) => {
     const user = await User.findOne(
       { email: user_email, is_delete: false },
       {
+        sns_id: 1,
         name: 1,
         email: 1,
         birth: 1,
@@ -256,7 +259,95 @@ export const getUser = async (req, res) => {
       return;
     }
 
-    res.status(200).json({ ok: true, data: user });
+    const interestStock = await InterestStock.findOne({
+      user_snsId: user.sns_id,
+      is_delete: false,
+    });
+
+    const { sns_id, ...userWithoutSnsId } = user.toObject();
+
+    if (interestStock) {
+      interestStock.stock_list.sort((a, b) => a.order - b.order);
+
+      const reutersCodeList = interestStock.stock_list.map((stock) => stock.reuters_code);
+      res.status(200).json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: reutersCodeList } });
+    } else {
+      res.status(200).json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: null } }); // 없으면 null 반환
+    }
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+// 비밀번호 인증 API
+export const passwordCert = async (req, res) => {
+  try {
+    const snsId = req.snsId;
+    const { email, password } = req.body;
+
+    // 데이터베이스 연결
+    await connectDB().catch((err) => {
+      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+      return;
+    });
+
+    const user = await User.findOne({ sns_id: snsId, is_delete: false }).select("+password");
+
+    if (!user) {
+      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      return;
+    }
+
+    if (user.email !== email) {
+      res
+        .status(401)
+        .json({ ok: false, message: "현재 사용자가 다른 이메일을 사용하고 있습니다. 다시 로그인 해주세요." });
+      return;
+    }
+
+    if (password !== "" && (await bcrypt.compare(password, user.password))) {
+      res.status(200).json({ ok: true, message: "비밀번호 인증 완료" });
+    } else {
+      res.status(200).json({ ok: false, message: "비밀번호 인증 실패" });
+    }
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+// 이메일 인증 API (인증코드 발송)
+export const emailCert = async (req, res) => {
+  try {
+    const snsId = req.snsId;
+    const { email } = req.body;
+
+    // 데이터베이스 연결
+    await connectDB().catch((err) => {
+      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+      return;
+    });
+
+    const user = await User.findOne({ sns_id: snsId, is_delete: false });
+    if (!user) {
+      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      return;
+    }
+
+    if (user.email !== email) {
+      res
+        .status(401)
+        .json({ ok: false, message: "현재 사용자가 다른 이메일을 사용하고 있습니다. 다시 로그인 해주세요." });
+      return;
+    }
+
+    // 인증 코드 생성 및 Cert 인스턴스 생성
+    const cert = new Cert({ user_email: email });
+    const code = cert.generateCode(); // 인증 코드 및 만료 시간 생성
+
+    await send_main_func({ type: "code", to: email, VALUE: code });
+    await cert.save();
+
+    res.status(200).json({ ok: true, message: "인증코드 전송 완료" });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
   }

@@ -1,13 +1,14 @@
 import mongoose from "mongoose";
 
 const StockSchema = new mongoose.Schema({
-  stockName: { type: String, required: true, unique: true },
-  symbolCode: { type: String, required: true },
-  reutersCode: { type: String, required: true },
-  price: { type: Number, required: true },
-  nationType: { type: String, required: true },
-  compareToPreviousClosePrice: { type: Number, required: true },
-  fluctuationsRatio: { type: Number, required: true },
+  reuters_code: { type: String, required: true, unique: true },
+  symbol_code: { type: String, required: true },
+  stock_name: { type: String, required: true },
+  stock_name_eng: { type: String, required: true },
+  close_price: { type: Number, required: true },
+  nation_type: { type: String, required: true },
+  compare_to_previous_close_price: { type: Number, required: true },
+  fluctuations_ratio: { type: Number, required: true },
   market_price: { type: Number, default: 0 },
   investment_index: { type: Number, default: 0 },
   profitability: { type: Number, default: 0 },
