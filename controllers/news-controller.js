@@ -123,3 +123,20 @@ export const getNews = async (req, res) => {
     res.status(500).json({ ok: false, message: err.message });
   }
 };
+
+// 주요 뉴스
+export const hotNews = async (req, res) => {
+  try {
+    // 데이터베이스 연결
+    await connectDB().catch((err) => {
+      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
+      return;
+    });
+    const hotNews = await News.findOne().sort({ score: -1, view: -1, published_time: -1 });
+
+    res.status(200).json({ ok: true, data: hotNews });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
