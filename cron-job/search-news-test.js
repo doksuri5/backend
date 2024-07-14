@@ -1,6 +1,5 @@
 import * as puppeteer from "puppeteer";
 import { formatDate } from "../utils/formatDate.js";
-import * as xlsx from "xlsx";
 
 const stock_list = [
   { 애플: "AAPL.O" },
@@ -37,13 +36,13 @@ const scrollPage = async (page) => {
 const getTranslatedContent = async (link, language, query) => {
   const browser = await puppeteer.launch({
     headless: false,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1080, height: 1080 });
   await page.setRequestInterception(true);
   page.on("request", (req) => {
-    // 이미지, 스타일, 폰트 가져오지 않기
     if (req.resourceType() === "image" || req.resourceType() === "stylesheet" || req.resourceType() === "font") {
       req.abort();
     } else {
@@ -53,13 +52,15 @@ const getTranslatedContent = async (link, language, query) => {
 
   await page.goto(link, { waitUntil: "networkidle2" });
 
+  // buttonSelector가 모두 로딩될 때까지 기다리기
+  await page.waitForSelector(language.buttonSelector, { visible: true });
   await page.click(language.buttonSelector);
   await delay(3000);
   await scrollPage(page);
 
   const tags = await page.evaluate(() => {
     return Array.from(document.querySelectorAll("#section-list > ul > li"))
-      .slice(0, 2)
+      .slice(0, 10)
       .map((t) => ({
         title: t.querySelector(".titles a")?.textContent.trim(),
         thumbnail_url: t.querySelector("a > img")?.src,
@@ -88,7 +89,6 @@ const getTranslatedContent = async (link, language, query) => {
   for (const t of tags) {
     if (t.thumbnail_url && t.description && t.link) {
       await page.goto(t.link, { waitUntil: "networkidle2" });
-      await page.setRequestInterception(true);
 
       const articleContent = await page.evaluate(() => {
         const content = Array.from(document.querySelectorAll("#article-view-content-div p"))
@@ -148,9 +148,9 @@ const getSearchNews = async (query) => {
 
   const languages = [
     { lang: "ko", buttonSelector: ".translate-btn.kr", publisher: "연합 인포맥스" },
-    // { lang: "en", buttonSelector: ".translate-btn.en", publisher: "Yonhap Infomax" },
-    // { lang: "jp", buttonSelector: ".translate-btn.jp", publisher: "連合インフォマックス" },
-    // { lang: "ch", buttonSelector: ".translate-btn.cn", publisher: "韩联社 Infomax" },
+    { lang: "en", buttonSelector: ".translate-btn.en", publisher: "Yonhap Infomax" },
+    { lang: "jp", buttonSelector: ".translate-btn.jp", publisher: "連合インフォマックス" },
+    { lang: "ch", buttonSelector: ".translate-btn.cn", publisher: "韩联社 Infomax" },
   ];
 
   const translatedContentPromises = languages.map((language) => getTranslatedContent(url, language, query));
@@ -162,24 +162,13 @@ const getSearchNews = async (query) => {
 };
 
 const main = async () => {
-  // const queries = ["애플", "마이크로소프트", "아마존", "테슬라", "유니티", "구글"];
-  const queries = ["애플"];
+  const queries = ["애플", "마이크로소프트", "아마존", "테슬라", "유니티", "구글"];
   const allResults = [];
   for (const query of queries) {
     const result = await getSearchNews(query);
     allResults.push(result);
-    await delay(3000); // 다음 query 진행 전에 5초 딜레이
+    await delay(3000);
   }
-
-  // 엑셀 파일로 저장
-  const workbook = xlsx.utils.book_new();
-  allResults.forEach(({ query, translatedContents }) => {
-    translatedContents.forEach(({ lang, data }) => {
-      const worksheet = xlsx.utils.json_to_sheet(data);
-      xlsx.utils.book_append_sheet(workbook, worksheet, `${query}_${lang}`);
-    });
-  });
-  xlsx.writeFile(workbook, "translated_content.xlsx");
 };
 
 export { main };
