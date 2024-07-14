@@ -21,11 +21,18 @@ InterestStockSchema.methods.addStock = async function (stock) {
     this.stock_list.length > 0
       ? Math.max(...this.stock_list.map((s) => s.order))
       : 0;
+
+  // 이미 추가된 주식인지 확인
+  if (this.stock_list.find((s) => s.reuters_code === stock)) {
+    throw new Error("이미 추가된 주식입니다.");
+  }
+
   this.stock_list.push({
     reuters_code: stock,
     created_at: getKoreanTime(),
     order: maxOrder + 1,
   });
+
   await this.save();
 };
 
