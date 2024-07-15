@@ -162,7 +162,7 @@ const getSearchNews = async (query) => {
 
   const translatedContentPromises = languages.map((language) => getTranslatedContent(url, language, query));
 
-  const translatedContents = await Promise.all(translatedContentPromises);
+  const translatedContents = await Promise.allSettled(translatedContentPromises);
 
   const mergedResults = translatedContents.reduce((acc, curr) => {
     curr.data.forEach((item) => {
