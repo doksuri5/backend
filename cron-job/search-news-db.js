@@ -162,20 +162,47 @@ const getSearchNews = async (query) => {
 
   const translatedContentPromises = languages.map((language) => getTranslatedContent(url, language, query));
 
+  const fetchWithRetry = async (promise, retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+      const result = await promise;
+      if (result.status === "fulfilled") {
+        return result;
+      }
+    }
+    return { status: "rejected", reason: "Retries exhausted" };
+  };
+
   const translatedContents = await Promise.allSettled(translatedContentPromises);
 
-  const mergedResults = translatedContents.reduce((acc, curr) => {
-    curr.data.forEach((item) => {
-      const existingItem = acc.find((i) => i.index === item.index);
-      if (existingItem) {
-        existingItem.publisher = { ...existingItem.publisher, ...item.publisher };
-        existingItem.title = { ...existingItem.title, ...item.title };
-        existingItem.description = { ...existingItem.description, ...item.description };
-        existingItem.content = { ...existingItem.content, ...item.content };
-      } else {
-        acc.push(item);
+  // 재시도 로직 추가
+  const retriedContents = await Promise.all(
+    translatedContents.map((result) => {
+      if (result.status === "rejected") {
+        const retryPromise = fetchWithRetry(result, 3);
+        return retryPromise;
       }
-    });
+      return result;
+    })
+  );
+
+  console.log(retriedContents);
+
+  const mergedResults = retriedContents.reduce((acc, curr) => {
+    if (curr.status === "fulfilled") {
+      curr.value.data.forEach((item) => {
+        const existingItem = acc.find((i) => i.index === item.index);
+        if (existingItem) {
+          existingItem.publisher = { ...existingItem.publisher, ...item.publisher };
+          existingItem.title = { ...existingItem.title, ...item.title };
+          existingItem.description = { ...existingItem.description, ...item.description };
+          existingItem.content = { ...existingItem.content, ...item.content };
+        } else {
+          acc.push(item);
+        }
+      });
+    } else {
+      console.error(`Failed to fetch data: ${curr.reason}`);
+    }
     return acc;
   }, []);
 
