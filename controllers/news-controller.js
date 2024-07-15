@@ -53,8 +53,7 @@ export const getTodayPopularNews = async (req, res) => {
 // 관심종목과 관련된 뉴스
 export const getInterestStockNews = async (req, res) => {
   try {
-    // const {snsId} = req.session;
-    const snsId = "4c4f028e-b42c-4174-b8c2-368b20c30be9";
+    const { snsId } = req.session;
 
     // 데이터베이스 연결
     await connectDB().catch((err) => {
