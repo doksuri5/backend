@@ -110,7 +110,10 @@ export const getNews = async (req, res) => {
     const news = await News.findOne({ index });
     const relative_stock = news.relative_stock;
 
-    const relativeNews = await News.find({ relative_stock: { $in: relative_stock }, index: { $nin: index } })
+    const relativeNews = await News.find(
+      { relative_stock: { $in: relative_stock }, index: { $nin: index } },
+      { title: 1, published_time: 1, publisher: 1 }
+    )
       .sort({
         published_time: -1,
       })
