@@ -23,6 +23,7 @@
     "cron": "^3.1.7",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
+    "es-hangul": "^1.4.5",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "jsonwebtoken": "^9.0.2",

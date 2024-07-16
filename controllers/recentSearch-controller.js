@@ -1,10 +1,13 @@
 import _ from "lodash";
+import { hangulIncludes } from "es-hangul";
 import NodeCache from "node-cache";
 import connectDB from "../database/db.js";
 import Stock from "../schemas/stock-schema.js";
 import RecentSearch from "../schemas/recentSearch-schema.js";
 import PopularSearch from "../schemas/popularSearch-schema.js";
-import { STOCK_NAME_LIST } from "../constants/app.constants.js";
+import User from "../schemas/user-schema.js";
+import { getKoreanTime } from "../utils/getKoreanTime.js";
+import { VARIOUS_STOCK_TO_NAME } from "../constants/app.constants.js";
 
 // 검색 캐시 초기화 (5초)
 const searchCache = new NodeCache({ stdTTL: 5 });
@@ -61,9 +64,7 @@ export const getPopularSearches = async (req, res) => {
     await connectDB();
 
     // 인기 검색어 조회
-    const popularSearches = await PopularSearch.find()
-      .sort({ count: -1 })
-      .limit(5);
+    const popularSearches = await PopularSearch.find().sort({ count: -1 }).limit(5);
 
     if (popularSearches.length === 0) {
       res.status(200).json({ ok: true, data: [] });
@@ -97,53 +98,67 @@ export const getPopularSearches = async (req, res) => {
   }
 };
 
-// 최근 검색어 저장 (좀 더 생각해보기 - 한 글자만 입력했을 경우와, 영어로 입력했을 때 어떻게 해야 되는지)
+// 최근 검색어 저장
 export const saveRecentSearch = async (req, res) => {
   try {
     const { stock_name } = req.body;
+    const { snsId } = req.session;
 
-    // 검색어가 6가지 종목 안에 없는 경우
-    if (!STOCK_NAME_LIST.includes(stock_name)) {
+    // 검색어가 6가지 종목 안에 포함되는 경우 (초성 포함)
+    const searchStockList = Object.entries(VARIOUS_STOCK_TO_NAME)
+      .filter((stock) => hangulIncludes(stock[0], stock_name))
+      .map((stock) => stock[1]);
+
+    if (searchStockList.length === 0) {
       res.status(200).json({ ok: true, data: [] });
       return;
     }
 
-    const { user_id } = req.session;
-
     // 데이터베이스 연결
     await connectDB();
 
-    // 검색어가 이미 존재하는지 확인
-    const existingSearch = await RecentSearch.findOne({ user_id, stock_name });
+    // 유저 정보 조회
+    const user = await User.findOne({ sns_id: snsId, is_delete: false });
+    if (!user) {
+      res.status(401).json({ ok: false, message: "존재하지 않는 유저입니다." });
+      return;
+    }
 
-    if (existingSearch) {
-      // 존재하면 검색 날짜를 최신으로 업데이트
-      existingSearch.search_date = new Date();
-      await existingSearch.save();
-    } else {
-      const newSearch = new RecentSearch({
-        user_id,
-        stock_name,
-        search_date: new Date(),
-      });
-      await newSearch.save();
+    // searchStockList를 기반으로 검색어 존재 여부 확인 및 업데이트 또는 추가
+    for (const stock of searchStockList) {
+      const existingSearch = await RecentSearch.findOne({ user_snsId: snsId, stock_name: stock });
+
+      if (existingSearch) {
+        // 존재하면 검색 날짜를 최신으로 업데이트
+        existingSearch.search_date = getKoreanTime();
+        await existingSearch.save();
+      } else {
+        // 새로운 검색어 저장
+        const newSearch = new RecentSearch({
+          user_id: user._id,
+          user_snsId: snsId,
+          stock_name: stock,
+          search_date: getKoreanTime(),
+        });
+        await newSearch.save();
+      }
     }
 
     // 인기 검색어 카운트 +1 (5초 이내로 계속 검색 시 카운터가 되진 않음)
-    const cacheKey = `${user_id}:search_${stock_name}`;
+    const cacheKey = `${snsId}:search_${stock_name}`;
     if (!searchCache.has(cacheKey)) {
-      await PopularSearch.findOneAndUpdate(
-        { stock_name },
-        { $inc: { count: 1 } },
-        { upsert: true, new: true }
-      );
+      for (const stock of searchStockList) {
+        await PopularSearch.findOneAndUpdate(
+          { stock_name: stock },
+          { $inc: { count: 1 }, $setOnInsert: { stock_name: stock } },
+          { upsert: true }
+        );
+      }
       searchCache.set(cacheKey, true);
     }
 
-    // 저장 후 검색어에 대한 정보 출력 (한 글자라도 포함이 되어 있으면 출력)
-    const result = await Stock.find({
-      stock_name: { $regex: new RegExp(stock_name, "i") },
-    });
+    // 저장 후 검색어에 대한 정보 출력
+    const result = await Stock.find({ stock_name: { $in: searchStockList } });
 
     res.status(200).json({ ok: true, data: result });
   } catch (err) {
@@ -159,9 +174,7 @@ export const deleteRecentSearches = async (req, res) => {
     const { user_id } = req.session;
 
     await RecentSearch.deleteMany({ user_id }); // user_id에 따른 전부 삭제
-    res
-      .status(200)
-      .json({ ok: true, data: [], message: "recent searches deleted" });
+    res.status(200).json({ ok: true, data: [], message: "recent searches deleted" });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
   }
