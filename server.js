@@ -10,8 +10,6 @@ import MongoStore from "connect-mongo";
 import morgan from "morgan";
 
 import connectDB from "./database/db.js";
-import { CronJob } from "cron";
-import { main } from "./cron-job/search-news-db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,11 +34,7 @@ if (process.env.NODE_ENV === "development") {
   morgan.token("headers", (req) => JSON.stringify(req.headers, null, 2));
   morgan.token("body", (req) => JSON.stringify(req.body, null, 2));
 
-  app.use(
-    morgan(
-      ":method :url :status :res[content-length] - :response-time ms\nHeaders: :headers\nBody: :body\n"
-    )
-  );
+  app.use(morgan(":method :url :status :res[content-length] - :response-time ms\nHeaders: :headers\nBody: :body\n"));
 }
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -79,30 +73,6 @@ for (const file of routeFiles) {
 
 // DB 연결
 connectDB();
-
-// 작업 정의
-const executeTask = async () => {
-  console.log("===================================================");
-  console.log(await main());
-};
-
-await executeTask();
-
-// (async () => {
-//   await executeTask();
-
-//   const job = new CronJob(
-//     "*/1 * * * *",
-//     executeTask,
-//     () => {
-//       console.log("작업이 완료되었습니다.");
-//     },
-//     true, // true일 경우 서버가 재시작 되면 자동으로 다시 실행
-//     "Asia/Seoul"
-//   );
-
-//   job.start();
-// })();
 
 // 서버 연결
 app.listen(8080, () => {
