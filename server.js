@@ -36,11 +36,7 @@ if (process.env.NODE_ENV === "development") {
   morgan.token("headers", (req) => JSON.stringify(req.headers, null, 2));
   morgan.token("body", (req) => JSON.stringify(req.body, null, 2));
 
-  app.use(
-    morgan(
-      ":method :url :status :res[content-length] - :response-time ms\nHeaders: :headers\nBody: :body\n"
-    )
-  );
+  app.use(morgan(":method :url :status :res[content-length] - :response-time ms\nHeaders: :headers\nBody: :body\n"));
 }
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -86,7 +82,7 @@ const executeTask = async () => {
   console.log(await main());
 };
 
-await executeTask();
+// await executeTask();
 
 // (async () => {
 //   await executeTask();
