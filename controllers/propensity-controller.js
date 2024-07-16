@@ -20,7 +20,7 @@ export const getPropensity = async (req, res) => {
     }
 
     const userPropensity = await Propensity.findOne({ user_snsId: snsId });
-    res.status(200).json({ ok: false, data: userPropensity });
+    res.status(200).json({ ok: true, data: userPropensity });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
