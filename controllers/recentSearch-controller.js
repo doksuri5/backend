@@ -7,7 +7,7 @@ import RecentSearch from "../schemas/recentSearch-schema.js";
 import PopularSearch from "../schemas/popularSearch-schema.js";
 import User from "../schemas/user-schema.js";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
-import { STOCK_NAME_LIST } from "../constants/app.constants.js";
+import { VARIOUS_STOCK_TO_NAME } from "../constants/app.constants.js";
 
 // 검색 캐시 초기화 (5초)
 const searchCache = new NodeCache({ stdTTL: 5 });
@@ -105,7 +105,9 @@ export const saveRecentSearch = async (req, res) => {
     const { snsId } = req.session;
 
     // 검색어가 6가지 종목 안에 포함되는 경우 (초성 포함)
-    const searchStockList = STOCK_NAME_LIST.filter((stock) => hangulIncludes(stock, stock_name));
+    const searchStockList = Object.entries(VARIOUS_STOCK_TO_NAME)
+      .filter((stock) => hangulIncludes(stock[0], stock_name))
+      .map((stock) => stock[1]);
 
     if (searchStockList.length === 0) {
       res.status(200).json({ ok: true, data: [] });
@@ -155,10 +157,8 @@ export const saveRecentSearch = async (req, res) => {
       searchCache.set(cacheKey, true);
     }
 
-    // 저장 후 검색어에 대한 정보 출력 (한 글자라도 포함이 되어 있으면 출력)
-    const result = await Stock.find({
-      stock_name: { $regex: new RegExp(stock_name, "i") },
-    });
+    // 저장 후 검색어에 대한 정보 출력
+    const result = await Stock.find({ stock_name: { $in: searchStockList } });
 
     res.status(200).json({ ok: true, data: result });
   } catch (err) {
