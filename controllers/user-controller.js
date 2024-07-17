@@ -253,9 +253,14 @@ export const getUser = async (req, res) => {
       const reutersCodeList = interestStock.stock_list.map((stock) => stock.reuters_code);
       res
         .status(200)
-        .json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: reutersCodeList, userPropensity } });
+        .json({
+          ok: true,
+          data: { ...userWithoutSnsId, interest_stocks: reutersCodeList, user_propensity: userPropensity },
+        });
     } else {
-      res.status(200).json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: null, userPropensity } }); // 없으면 null 반환
+      res
+        .status(200)
+        .json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: null, user_propensity: userPropensity } }); // 없으면 null 반환
     }
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });

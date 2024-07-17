@@ -19,8 +19,8 @@ export const getPropensity = async (req, res) => {
       return;
     }
 
-    const userPropensity = await Propensity.findOne({ user_snsId: snsId });
-    res.status(200).json({ ok: true, data: userPropensity });
+    const user_propensity = await Propensity.findOne({ user_snsId: snsId });
+    res.status(200).json({ ok: true, data: user_propensity });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
@@ -49,8 +49,8 @@ export const updatePropensity = async (req, res) => {
       { user_snsId: snsId },
       {
         $set: {
-          isAgreeCreditInfo,
-          investPropensity,
+          is_agree_credit_info: isAgreeCreditInfo,
+          invest_propensity: investPropensity,
           updated_at: getKoreanTime(),
         },
       }
