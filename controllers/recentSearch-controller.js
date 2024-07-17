@@ -15,14 +15,15 @@ const searchCache = new NodeCache({ stdTTL: 5 });
 // 발견 페이지 - 최근 검색어 보여줄 때 사용
 export const getRecentSearches = async (req, res) => {
   try {
-    const { user_id } = req.session;
+    const { snsId } = req.session;
+
     // 데이터베이스 연결
     await connectDB();
 
-    const searches = await RecentSearch.find({ user_id }).sort({
+    const searches = await RecentSearch.find({ user_snsId: snsId }, { _id: 0, stock_name: 1, search_date: 1 }).sort({
       search_date: -1,
     });
-
+    console.log(searches);
     res.status(200).json({ ok: true, data: searches });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
@@ -32,13 +33,13 @@ export const getRecentSearches = async (req, res) => {
 // 관심 종목 페이지 모달 - 최근 검색한 종목 보여줄 때 사용
 export const getRecentSearchDetails = async (req, res) => {
   try {
-    // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
-    const { user_id } = req.session;
+    const { snsId } = req.session;
+
     // 데이터베이스 연결
     await connectDB();
 
     // 최근 검색어 DB 조회
-    const searches = await RecentSearch.find({ user_id }).sort({
+    const searches = await RecentSearch.find({ user_snsId: snsId }).sort({
       search_date: -1,
     });
 
@@ -58,6 +59,27 @@ export const getRecentSearchDetails = async (req, res) => {
   }
 };
 
+// 인기 검색어 이름만
+export const getPopularSearchesName = async (req, res) => {
+  try {
+    // 데이터베이스 연결
+    await connectDB();
+
+    // 인기 검색어 조회
+    const popularSearches = await PopularSearch.find().sort({ count: -1 }).limit(5);
+
+    if (popularSearches.length === 0) {
+      res.status(200).json({ ok: true, data: [] });
+      return;
+    }
+
+    res.status(200).json({ ok: true, data: popularSearches });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+// 인기 검색어 디테일 정보까지
 export const getPopularSearches = async (req, res) => {
   try {
     // 데이터베이스 연결
