@@ -1,11 +1,14 @@
 import _ from "lodash";
 import { hangulIncludes } from "es-hangul";
 import NodeCache from "node-cache";
+
 import connectDB from "../database/db.js";
 import Stock from "../schemas/stock-schema.js";
 import RecentSearch from "../schemas/recentSearch-schema.js";
+import RecentSearchText from "../schemas/recentSearchText-schema.js";
 import PopularSearch from "../schemas/popularSearch-schema.js";
 import User from "../schemas/user-schema.js";
+
 import { getKoreanTime } from "../utils/getKoreanTime.js";
 import { VARIOUS_STOCK_TO_NAME } from "../constants/app.constants.js";
 
@@ -20,10 +23,13 @@ export const getRecentSearches = async (req, res) => {
     // 데이터베이스 연결
     await connectDB();
 
-    const searches = await RecentSearch.find({ user_snsId: snsId }, { _id: 0, stock_name: 1, search_date: 1 }).sort({
+    const searches = await RecentSearchText.find(
+      { user_snsId: snsId },
+      { _id: 0, search_text: 1, search_date: 1 }
+    ).sort({
       search_date: -1,
     });
-    console.log(searches);
+
     res.status(200).json({ ok: true, data: searches });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
@@ -123,12 +129,12 @@ export const getPopularSearches = async (req, res) => {
 // 최근 검색어 저장
 export const saveRecentSearch = async (req, res) => {
   try {
-    const { stock_name } = req.body;
+    const search_text = req.body.stock_name;
     const { snsId } = req.session;
 
     // 검색어가 6가지 종목 안에 포함되는 경우 (초성 포함)
     const searchStockList = Object.entries(VARIOUS_STOCK_TO_NAME)
-      .filter((stock) => hangulIncludes(stock[0], stock_name))
+      .filter((stock) => hangulIncludes(stock[0], search_text))
       .map((stock) => stock[1]);
 
     if (searchStockList.length === 0) {
@@ -145,6 +151,13 @@ export const saveRecentSearch = async (req, res) => {
       res.status(401).json({ ok: false, message: "존재하지 않는 유저입니다." });
       return;
     }
+
+    // 검색어 저장
+    await RecentSearchText.findOneAndUpdate(
+      { user_snsId: snsId, search_text },
+      { $set: { search_date: getKoreanTime(), is_delete: false } },
+      { upsert: true }
+    );
 
     // searchStockList를 기반으로 검색어 존재 여부 확인 및 업데이트 또는 추가
     for (const stock of searchStockList) {
@@ -167,7 +180,7 @@ export const saveRecentSearch = async (req, res) => {
     }
 
     // 인기 검색어 카운트 +1 (5초 이내로 계속 검색 시 카운터가 되진 않음)
-    const cacheKey = `${snsId}:search_${stock_name}`;
+    const cacheKey = `${snsId}:search_${search_text}`;
     if (!searchCache.has(cacheKey)) {
       for (const stock of searchStockList) {
         await PopularSearch.findOneAndUpdate(
@@ -193,9 +206,22 @@ export const saveRecentSearch = async (req, res) => {
 export const deleteRecentSearches = async (req, res) => {
   try {
     // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
-    const { user_id } = req.session;
+    const { snsId } = req.session;
 
-    await RecentSearch.deleteMany({ user_id }); // user_id에 따른 전부 삭제
+    await RecentSearch.deleteMany({ user_snsId: snsId }); // sns_id에 따른 검색한 주식 전부 삭제
+    await RecentSearchText.deleteMany({ user_snsId: snsId }); // sns_id에 따른 검색어 전부 삭제
+    res.status(200).json({ ok: true, data: [], message: "recent searches deleted" });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+export const deleteRecentSearchesItem = async (req, res) => {
+  try {
+    const { snsId } = req.session;
+
+    await RecentSearchText.deleteMany({ user_snsId: snsId }); // sns_id에 따른 검색어 전부 삭제
+    await RecentSearchText.delete;
     res.status(200).json({ ok: true, data: [], message: "recent searches deleted" });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
