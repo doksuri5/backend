@@ -5,6 +5,7 @@ import User from "../schemas/user-schema.js";
 import Withdraw from "../schemas/withdraw-schema.js";
 import InterestStock from "../schemas/interestStock-schema.js";
 import Cert from "../schemas/cert-schema.js";
+import Propensity from "../schemas/propensity-schema.js";
 
 import uploadProfileImg from "../middleware/imageUpload.js";
 import deleteFileFromS3 from "../middleware/imageDelete.js";
@@ -234,6 +235,11 @@ export const getUser = async (req, res) => {
       return;
     }
 
+    const userPropensity = await Propensity.findOne(
+      { user_snsId: user.sns_id },
+      { _id: 0, isAgreeCreditInfo: 1, investPropensity: 1 }
+    );
+
     const interestStock = await InterestStock.findOne({
       user_snsId: user.sns_id,
       is_delete: false,
@@ -245,9 +251,11 @@ export const getUser = async (req, res) => {
       interestStock.stock_list.sort((a, b) => a.order - b.order);
 
       const reutersCodeList = interestStock.stock_list.map((stock) => stock.reuters_code);
-      res.status(200).json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: reutersCodeList } });
+      res
+        .status(200)
+        .json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: reutersCodeList, userPropensity } });
     } else {
-      res.status(200).json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: null } }); // 없으면 null 반환
+      res.status(200).json({ ok: true, data: { ...userWithoutSnsId, interest_stocks: null, userPropensity } }); // 없으면 null 반환
     }
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
