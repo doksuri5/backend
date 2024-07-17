@@ -149,9 +149,6 @@ export const hotNews = async (req, res) => {
 export const getSearchNews = async (req, res) => {
   try {
     const { stock_name } = req.params;
-    const { page } = req.query;
-    const itemsPerPage = 6;
-    const skip = (page - 1) * itemsPerPage;
 
     // 검색어가 6가지 종목 안에 포함되는 경우 (초성 포함)
     const searchStockList = Object.entries(VARIOUS_STOCK_TO_REUTERS_CODE)
@@ -170,14 +167,11 @@ export const getSearchNews = async (req, res) => {
     const searchNews = await News.find(
       { relative_stock: { $in: searchStockList } },
       { index: 1, title: 1, published_time: 1, publisher: 1, thumbnail_url: 1, _id: 1 }
-    )
-      .sort({
-        published_time: -1,
-        score: -1,
-        view: -1,
-      })
-      .skip(skip)
-      .limit(itemsPerPage);
+    ).sort({
+      published_time: -1,
+      score: -1,
+      view: -1,
+    });
 
     res.status(200).json({ ok: true, data: searchNews });
   } catch (err) {
