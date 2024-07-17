@@ -16,7 +16,6 @@
     "@aws-sdk/client-s3": "^3.609.0",
     "axios": "^1.7.2",
     "bcryptjs": "^2.4.3",
-    "cheerio": "^1.0.0-rc.12",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -36,7 +35,6 @@
     "node-cache": "^5.1.2",
     "nodemailer": "^6.9.14",
     "progress": "^2.0.3",
-    "puppeteer": "^22.13.0",
     "session-file-store": "^1.5.0",
     "uuid": "^10.0.0"
   },
