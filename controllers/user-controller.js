@@ -11,30 +11,10 @@ import deleteFileFromS3 from "../middleware/imageDelete.js";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
 import { send_main_func } from "../utils/emailSendUtil.js";
 
-// 전체 유저 조회 (테스트 용도)
-export const getAllUser = async (req, res) => {
-  try {
-    const user = await User.find();
-    res.status(200).json({
-      ok: true,
-      data: user,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      ok: false,
-      message: err.message,
-    });
-    return;
-  }
-};
-
-// 언어 변경 (프론트로 변경)
+// 언어 변경
 export const language = async (req, res) => {
   try {
-    // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
-    const sns_id = "6682e16dfae77a1869b25865";
-
+    const { snsId } = req.session;
     const { language } = req.body;
 
     // 언어를 선택하지 않은 경우
@@ -49,7 +29,7 @@ export const language = async (req, res) => {
       return;
     });
 
-    const user = await User.findOneAndUpdate({ sns_id }, { $set: { language: language } }, { new: true });
+    const user = await User.findOneAndUpdate({ snsId }, { $set: { language: language } }, { new: true });
     res.status(200).json({ ok: true, data: user });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
@@ -59,9 +39,7 @@ export const language = async (req, res) => {
 // 유저 탈퇴
 export const withdraw = async (req, res) => {
   try {
-    // 유저 쿠키 값을 가지고 sns_id 값 가져오기
-    const sns_id = "6682e16dfae77a1869b25865";
-
+    const { snsId } = req.session;
     const { email, reason, reason_other = null } = req.body;
 
     // 데이터베이스 연결
@@ -70,7 +48,7 @@ export const withdraw = async (req, res) => {
       return;
     });
 
-    const user = await User.findOne({ sns_id, is_delete: false });
+    const user = await User.findOne({ sns_id: snsId, is_delete: false });
 
     // 클라이언트에서 보낸 이메일과 세션으로 DB 조회한 이메일이 다른 경우
     if (!user || email !== user.email) {
@@ -79,7 +57,7 @@ export const withdraw = async (req, res) => {
     }
 
     const updatedUser = await User.findOneAndUpdate(
-      { sns_id, email, is_delete: false },
+      { sns_id: snsId, email, is_delete: false },
       { $set: { is_delete: true, deleted_at: getKoreanTime() } },
       { new: true }
     );
@@ -107,9 +85,7 @@ export const updateUserProfile = [
   uploadProfileImg.single("profile"),
   async (req, res) => {
     try {
-      // 유저 쿠키 값을 가지고 sns_id 값 가져오기
-      const sns_id = "66851b104c108bdb12c7973e";
-
+      const { snsId } = req.session;
       const { nickname, gender, interest_stocks } = req.body;
 
       // 데이터베이스 연결
@@ -119,7 +95,7 @@ export const updateUserProfile = [
       });
 
       // 유저 조회
-      const user = await User.findOne({ sns_id, is_delete: false });
+      const user = await User.findOne({ sns_id: snsId, is_delete: false });
       if (!user) {
         res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
         return;
@@ -146,7 +122,7 @@ export const updateUserProfile = [
 
       // 프로필 수정
       await User.findOneAndUpdate(
-        { sns_id, is_delete: false },
+        { sns_id: snsId, is_delete: false },
         {
           $set: { nickname, gender, profile: new_profile_img, updated_at: getKoreanTime() },
         }
@@ -179,10 +155,8 @@ export const updateUserProfile = [
 // 유저 개인정보 수정
 export const updateUserInfo = async (req, res) => {
   try {
+    const { snsId } = req.session;
     const { email, password, phone, birth } = req.body;
-
-    // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
-    const sns_id = "66851b104c108bdb12c7973e";
 
     // 데이터베이스 연결
     await connectDB().catch((err) => {
@@ -191,7 +165,7 @@ export const updateUserInfo = async (req, res) => {
     });
 
     // 고정 값으로 보낸 이메일과 DB에 저장된 이메일이 같은지 확인
-    const user = await User.findOne({ sns_id, is_delet: false }).select("+password");
+    const user = await User.findOne({ sns_id: snsId, is_delete: false }).select("+password");
     if (!user) {
       res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       return;
@@ -211,7 +185,7 @@ export const updateUserInfo = async (req, res) => {
 
     // 프로필 수정
     await User.findOneAndUpdate(
-      { sns_id, is_delete: false },
+      { sns_id: snsId, is_delete: false },
       {
         $set: {
           password: hashedPassword,
@@ -231,6 +205,7 @@ export const updateUserInfo = async (req, res) => {
 // 유저 조회
 export const getUser = async (req, res) => {
   try {
+    const { snsId } = req.session;
     const { user_email } = req.params;
 
     // 데이터베이스 연결
@@ -240,7 +215,7 @@ export const getUser = async (req, res) => {
     });
 
     const user = await User.findOne(
-      { email: user_email, is_delete: false },
+      { sns_id: snsId, email: user_email, is_delete: false },
       {
         sns_id: 1,
         name: 1,
@@ -282,7 +257,7 @@ export const getUser = async (req, res) => {
 // 비밀번호 인증 API
 export const passwordCert = async (req, res) => {
   try {
-    const snsId = req.snsId;
+    const { snsId } = req.session;
     const { email, password } = req.body;
 
     // 데이터베이스 연결
@@ -315,10 +290,10 @@ export const passwordCert = async (req, res) => {
   }
 };
 
-// 이메일 인증 API (인증코드 발송)
+// 사용자 인증 이메일 인증 API (인증코드 발송)
 export const emailCert = async (req, res) => {
   try {
-    const snsId = req.snsId;
+    const { snsId } = req.session;
     const { email } = req.body;
 
     // 데이터베이스 연결
@@ -344,7 +319,7 @@ export const emailCert = async (req, res) => {
     const cert = new Cert({ user_email: email });
     const code = cert.generateCode(); // 인증 코드 및 만료 시간 생성
 
-    await send_main_func({ type: "code", to: email, VALUE: code });
+    await send_main_func({ type: "cert", to: email, VALUE: code });
     await cert.save();
 
     res.status(200).json({ ok: true, message: "인증코드 전송 완료" });
