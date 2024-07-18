@@ -84,12 +84,17 @@ export const getInterestStockNews = async (req, res) => {
 // 최신 뉴스
 export const getRecentNews = async (req, res) => {
   try {
+    const { page = 1 } = req.query;
+    const limit = 4;
+    const skip = (page - 1) * limit;
+
     // 데이터베이스 연결
     await connectDB().catch((err) => {
       res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
       return;
     });
-    const recentNews = await News.find().sort({ published_time: -1 });
+
+    const recentNews = await News.find().sort({ published_time: -1 }).skip(skip).limit(limit);
 
     res.status(200).json({ ok: true, data: recentNews });
   } catch (err) {
