@@ -257,6 +257,24 @@ export const deleteRecentSearches = async (req, res) => {
     }
 
     await RecentSearch.deleteMany({ user_snsId: snsId, is_delete: false }); // sns_id에 따른 검색한 주식 전부 삭제
+    res.status(200).json({ ok: true, data: [], message: "recent searches deleted" });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+export const deleteRecentSearchTextList = async (req, res) => {
+  try {
+    // 유저 쿠키 값을 가지고 user_id(인덱스) 값 가져오기
+    const { snsId } = req.session;
+
+    // 유저 정보 조회
+    const user = await User.findOne({ sns_id: snsId, is_delete: false });
+    if (!user) {
+      res.status(401).json({ ok: false, message: "존재하지 않는 유저입니다." });
+      return;
+    }
+
     await RecentSearchText.deleteMany({ user_snsId: snsId, is_delete: false }); // sns_id에 따른 검색어 전부 삭제
     res.status(200).json({ ok: true, data: [], message: "recent searches deleted" });
   } catch (err) {
@@ -264,7 +282,7 @@ export const deleteRecentSearches = async (req, res) => {
   }
 };
 
-export const deleteRecentSearchItem = async (req, res) => {
+export const deleteRecentSearchTextItem = async (req, res) => {
   try {
     const { search_text } = req.params;
     const { snsId } = req.session;
