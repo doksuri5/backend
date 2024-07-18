@@ -237,7 +237,7 @@ export const getUser = async (req, res) => {
 
     const userPropensity = await Propensity.findOne(
       { user_snsId: user.sns_id },
-      { _id: 0, isAgreeCreditInfo: 1, investPropensity: 1 }
+      { _id: 0, is_agree_credit_info: 1, invest_propensity: 1 }
     );
 
     const interestStock = await InterestStock.findOne({
@@ -251,12 +251,10 @@ export const getUser = async (req, res) => {
       interestStock.stock_list.sort((a, b) => a.order - b.order);
 
       const reutersCodeList = interestStock.stock_list.map((stock) => stock.reuters_code);
-      res
-        .status(200)
-        .json({
-          ok: true,
-          data: { ...userWithoutSnsId, interest_stocks: reutersCodeList, user_propensity: userPropensity },
-        });
+      res.status(200).json({
+        ok: true,
+        data: { ...userWithoutSnsId, interest_stocks: reutersCodeList, user_propensity: userPropensity },
+      });
     } else {
       res
         .status(200)

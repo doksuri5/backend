@@ -140,9 +140,14 @@ export const register = [
 
       // 투자성향 저장
       if (isAgreeCreditInfo) {
-        await Propensity.create({ user_snsId: sns_id, login_type: "local", isAgreeCreditInfo, investPropensity });
+        await Propensity.create({
+          user_snsId: sns_id,
+          login_type: "local",
+          is_agree_credit_info: isAgreeCreditInfo,
+          invest_propensity: investPropensity,
+        });
       } else {
-        await Propensity.create({ user_snsId: sns_id, login_type: "local", isAgreeCreditInfo });
+        await Propensity.create({ user_snsId: sns_id, login_type: "local", is_agree_credit_info: isAgreeCreditInfo });
       }
 
       res.status(200).json({ ok: true, message: "회원가입 성공" });
@@ -217,9 +222,14 @@ export const registerSocial = [
 
       // 투자성향 저장
       if (isAgreeCreditInfo) {
-        await Propensity.create({ user_snsId: sns_id, login_type, isAgreeCreditInfo, investPropensity });
+        await Propensity.create({
+          user_snsId: sns_id,
+          login_type,
+          is_agree_credit_info: isAgreeCreditInfo,
+          invest_propensity: investPropensity,
+        });
       } else {
-        await Propensity.create({ user_snsId: sns_id, login_type, isAgreeCreditInfo });
+        await Propensity.create({ user_snsId: sns_id, login_type, is_agree_credit_info: isAgreeCreditInfo });
       }
 
       res.status(200).json({ ok: true, message: "회원가입 성공" });
