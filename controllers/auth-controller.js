@@ -6,6 +6,7 @@ import User from "../schemas/user-schema.js";
 import Cert from "../schemas/cert-schema.js";
 import InterestStock from "../schemas/interestStock-schema.js";
 import Log from "../schemas/log-schema.js";
+import Propensity from "../schemas/propensity-schema.js";
 
 import uploadProfileImg from "../middleware/imageUpload.js";
 import { send_main_func } from "../utils/emailSendUtil.js";
@@ -74,7 +75,19 @@ export const register = [
   uploadProfileImg.single("profile"),
   async (req, res) => {
     try {
-      const { name, email, password, birth, phone, gender, nickname, reuters_code, language = "ko" } = req.body;
+      const {
+        name,
+        email,
+        password,
+        birth,
+        phone,
+        gender,
+        nickname,
+        reuters_code,
+        language = "ko",
+        isAgreeCreditInfo,
+        investPropensity,
+      } = req.body;
 
       // 데이터베이스 연결
       await connectDB().catch((err) => {
@@ -125,6 +138,18 @@ export const register = [
       // 데이터베이스에 사용자 저장
       await user.save();
 
+      // 투자성향 저장
+      if (isAgreeCreditInfo) {
+        await Propensity.create({
+          user_snsId: sns_id,
+          login_type: "local",
+          is_agree_credit_info: isAgreeCreditInfo,
+          invest_propensity: investPropensity,
+        });
+      } else {
+        await Propensity.create({ user_snsId: sns_id, login_type: "local", is_agree_credit_info: isAgreeCreditInfo });
+      }
+
       res.status(200).json({ ok: true, message: "회원가입 성공" });
     } catch (err) {
       res.status(500).json({ ok: false, message: err.message });
@@ -148,6 +173,8 @@ export const registerSocial = [
         reuters_code,
         language = "ko",
         login_type,
+        isAgreeCreditInfo,
+        investPropensity,
       } = req.body;
 
       // 데이터베이스 연결
@@ -192,6 +219,18 @@ export const registerSocial = [
 
       // 데이터베이스에 사용자 저장
       await user.save();
+
+      // 투자성향 저장
+      if (isAgreeCreditInfo) {
+        await Propensity.create({
+          user_snsId: sns_id,
+          login_type,
+          is_agree_credit_info: isAgreeCreditInfo,
+          invest_propensity: investPropensity,
+        });
+      } else {
+        await Propensity.create({ user_snsId: sns_id, login_type, is_agree_credit_info: isAgreeCreditInfo });
+      }
 
       res.status(200).json({ ok: true, message: "회원가입 성공" });
     } catch (err) {
