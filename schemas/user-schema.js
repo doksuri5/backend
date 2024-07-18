@@ -5,7 +5,7 @@ import { getKoreanTime } from "../utils/getKoreanTime.js";
 const UserSchema = new mongoose.Schema({
   sns_id: { type: String, required: true }, // 소셜 로그인은 반환 값 저장, 로컬 로그인은 uuidv4로 저장
   name: { type: String, required: true }, // required: true일 경우 필수 입력 값
-  email: { type: String, required: true, unique: true }, // unique: 고유값 (무조건 1개)
+  email: { type: String, required: true },
   password: { type: String, select: false }, // select: false로 설정 시 조회가 되지 않음
   birth: { type: String, required: true }, // 950919
   phone: { type: String, required: true }, // 01047524087
