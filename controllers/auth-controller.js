@@ -165,7 +165,7 @@ export const registerSocial = [
         phone,
         gender,
         nickname,
-        interest_stocks,
+        reuters_code,
         language = "ko",
         login_type,
         isAgreeCreditInfo,
@@ -188,7 +188,7 @@ export const registerSocial = [
       // 파일 이름
       const profile_img_name = req.file ? `${req.file.key}` : "";
 
-      const parse_stockList = typeof interest_stocks === "string" ? JSON.parse(interest_stocks) : interest_stocks;
+      const parse_stockList = typeof reuters_code === "string" ? JSON.parse(reuters_code) : reuters_code;
 
       // body에 관심 주식을 넣은 경우
       if (parse_stockList && parse_stockList.length > 0) {
