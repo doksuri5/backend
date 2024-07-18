@@ -112,7 +112,7 @@ export const getPopularSearchesName = async (req, res) => {
     await connectDB();
 
     // 인기 검색어 조회
-    const popularSearches = await PopularSearch.find().sort({ count: -1 }).limit(5);
+    const popularSearches = await PopularSearch.find({}, { _id: 0, stock_name: 1, count: 1 }).sort({ count: -1 });
 
     if (popularSearches.length === 0) {
       res.status(200).json({ ok: true, data: [] });
@@ -132,7 +132,7 @@ export const getPopularSearches = async (req, res) => {
     await connectDB();
 
     // 인기 검색어 조회
-    const popularSearches = await PopularSearch.find().sort({ count: -1 }).limit(5);
+    const popularSearches = await PopularSearch.find().sort({ count: -1 });
 
     if (popularSearches.length === 0) {
       res.status(200).json({ ok: true, data: [] });
@@ -267,16 +267,14 @@ export const deleteRecentSearches = async (req, res) => {
 export const deleteRecentSearchItem = async (req, res) => {
   try {
     const { search_text } = req.params;
-    // const { snsId } = req.session;
+    const { snsId } = req.session;
 
-    // // 유저 정보 조회
-    // const user = await User.findOne({ sns_id: snsId, is_delete: false });
-    // if (!user) {
-    //   res.status(401).json({ ok: false, message: "존재하지 않는 유저입니다." });
-    //   return;
-    // }
-
-    console.log(search_text);
+    // 유저 정보 조회
+    const user = await User.findOne({ sns_id: snsId, is_delete: false });
+    if (!user) {
+      res.status(401).json({ ok: false, message: "존재하지 않는 유저입니다." });
+      return;
+    }
 
     const searchStockList = Object.entries(VARIOUS_STOCK_TO_NAME)
       .filter((stock) => hangulIncludes(stock[0], search_text))
@@ -284,17 +282,16 @@ export const deleteRecentSearchItem = async (req, res) => {
 
     console.log(searchStockList);
 
-    // await RecentSearchText.deleteOne({ user_snsId: snsId, search_text, is_delete: false });
-    // await RecentSearch.deleteOne({ user_snsId: snsId, is_delete: false });
+    await RecentSearchText.deleteOne({ user_snsId: snsId, search_text, is_delete: false });
 
-    // const searchesText = await RecentSearchText.find(
-    //   { user_snsId: snsId, is_delete: false },
-    //   { _id: 0, search_text: 1, search_date: 1 }
-    // ).sort({
-    //   search_date: -1,
-    // });
+    const searchesText = await RecentSearchText.find(
+      { user_snsId: snsId, is_delete: false },
+      { _id: 0, search_text: 1, search_date: 1 }
+    ).sort({
+      search_date: -1,
+    });
 
-    res.status(200).json({ ok: true, data: [] });
+    res.status(200).json({ ok: true, data: searchesText });
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message });
   }

@@ -11,6 +11,6 @@ router.get("/getSearchStocks/:search_text", searchController.getSearchStocks); /
 router.get("/getRecentSearchDetails", checkLoggedIn, searchController.getRecentSearchDetails); // 관심 종목 페이지 모달 - 최근 검색한 종목 보여줄 때 사용
 router.patch("/saveRecentSearch", checkLoggedIn, searchController.saveRecentSearch); // 최근 검색어 저장
 router.delete("/deleteRecentSearches", checkLoggedIn, searchController.deleteRecentSearches); // 유저 인덱스 따른 최근 검색어 및 검색한 주식 전부 삭제
-router.delete("/deleteRecentSearchItem/:search_text", searchController.deleteRecentSearchItem); // 유저 인덱스 따른 최근 검색어 개별 삭제
+router.delete("/deleteRecentSearchItem/:search_text", checkLoggedIn, searchController.deleteRecentSearchItem); // 유저 인덱스 따른 최근 검색어 개별 삭제
 
 export default router;
