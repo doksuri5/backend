@@ -94,9 +94,11 @@ export const getRecentNews = async (req, res) => {
       return;
     });
 
-    const recentNews = await News.find().sort({ published_time: -1 }).skip(skip).limit(limit);
+    const recent_news = await News.find().sort({ published_time: -1 }).skip(skip).limit(limit);
+    const total_page = Math.ceil((await News.countDocuments()) / 4);
+    const now_page = Number(page);
 
-    res.status(200).json({ ok: true, data: recentNews });
+    res.status(200).json({ ok: true, data: { total_page, now_page, recent_news } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
