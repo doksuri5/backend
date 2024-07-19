@@ -2,6 +2,7 @@ import { hangulIncludes } from "es-hangul";
 import connectDB from "../database/db.js";
 import InterestStock from "../schemas/interestStock-schema.js";
 import News from "../schemas/news-schema.js";
+import Stock from "../schemas/stock-schema.js";
 import { VARIOUS_STOCK_TO_REUTERS_CODE } from "../constants/app.constants.js";
 
 // 오늘 인기있는 뉴스
@@ -119,16 +120,20 @@ export const getNews = async (req, res) => {
     const news = await News.findOne({ index });
     const relative_stock = news.relative_stock;
 
-    const relativeNews = await News.find(
+    // 관련 주식
+    const stock_data = await Stock.find({ reuters_code: { $in: relative_stock } });
+
+    // 관련 뉴스
+    const relative_news = await News.find(
       { relative_stock: { $in: relative_stock }, index: { $nin: index } },
-      { title: 1, published_time: 1, publisher: 1 }
+      { _id: 0, index: 1, title: 1, published_time: 1, publisher: 1 }
     )
       .sort({
         published_time: -1,
       })
       .limit(4);
 
-    res.status(200).json({ ok: true, data: { news, relativeNews } });
+    res.status(200).json({ ok: true, data: { news, stock_data, relative_news } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
