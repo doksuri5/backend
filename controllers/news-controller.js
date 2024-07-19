@@ -170,6 +170,7 @@ export const getSearchNews = async (req, res) => {
     // 데이터베이스 연결
     await connectDB();
 
+    // 페이지에 맞는 뉴스 리스트를 가져옴
     const searchNews = await News.find(
       { relative_stock: { $in: searchStockList } },
       { index: 1, title: 1, published_time: 1, publisher: 1, thumbnail_url: 1, _id: 1 }
@@ -180,6 +181,36 @@ export const getSearchNews = async (req, res) => {
     });
 
     res.status(200).json({ ok: true, data: searchNews });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+// 발견 페이지 - 검색에 따른 뉴스 조회
+export const getSearchNewsTotalNum = async (req, res) => {
+  try {
+    const { stock_name } = req.params;
+
+    // 검색어가 6가지 종목 안에 포함되는 경우 (초성 포함)
+    const searchStockList = Object.entries(VARIOUS_STOCK_TO_REUTERS_CODE)
+      .filter((stock) => hangulIncludes(stock[0], stock_name))
+      .map((stock) => stock[1]);
+
+    if (searchStockList.length === 0) {
+      res.status(200).json({ ok: true, data: [] });
+      return;
+    }
+
+    // 데이터베이스 연결
+    await connectDB();
+
+    // 전체 뉴스 개수를 가져옵니다
+    const totalNewsCount = await News.countDocuments({
+      relative_stock: { $in: searchStockList },
+    });
+
+    res.status(200).json({ ok: true, data: [totalNewsCount] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
