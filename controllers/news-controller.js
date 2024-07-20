@@ -46,7 +46,7 @@ export const getTodayPopularNews = async (req, res) => {
       startDate.setDate(startDate.getDate() - 1);
     }
 
-    res.status(200).json({ ok: true, data: news });
+    res.status(200).json({ ok: true, data: news ?? [] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
@@ -75,7 +75,7 @@ export const getInterestStockNews = async (req, res) => {
       })
       .limit(6);
 
-    res.status(200).json({ ok: true, data: interestStockNews });
+    res.status(200).json({ ok: true, data: interestStockNews ?? [] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
@@ -185,7 +185,7 @@ export const getSearchNews = async (req, res) => {
       view: -1,
     });
 
-    res.status(200).json({ ok: true, data: searchNews });
+    res.status(200).json({ ok: true, data: searchNews ?? [] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });

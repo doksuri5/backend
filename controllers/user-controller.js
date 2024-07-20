@@ -98,7 +98,7 @@ export const updateUserProfile = [
       // 유저 조회
       const user = await User.findOne({ sns_id: snsId, is_delete: false });
       if (!user) {
-        res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+        res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
         return;
       }
 
@@ -168,7 +168,7 @@ export const updateUserInfo = async (req, res) => {
     // 고정 값으로 보낸 이메일과 DB에 저장된 이메일이 같은지 확인
     const user = await User.findOne({ sns_id: snsId, is_delete: false }).select("+password");
     if (!user) {
-      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       return;
     }
 
@@ -231,7 +231,7 @@ export const getUser = async (req, res) => {
     );
 
     if (!user) {
-      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       return;
     }
 
@@ -280,7 +280,7 @@ export const passwordCert = async (req, res) => {
     const user = await User.findOne({ sns_id: snsId, is_delete: false }).select("+password");
 
     if (!user) {
-      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       return;
     }
 
@@ -315,7 +315,7 @@ export const emailCert = async (req, res) => {
 
     const user = await User.findOne({ sns_id: snsId, is_delete: false });
     if (!user) {
-      res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       return;
     }
 
