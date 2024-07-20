@@ -2,6 +2,7 @@ import { hangulIncludes } from "es-hangul";
 import connectDB from "../database/db.js";
 import InterestStock from "../schemas/interestStock-schema.js";
 import News from "../schemas/news-schema.js";
+import Stock from "../schemas/stock-schema.js";
 import { VARIOUS_STOCK_TO_REUTERS_CODE } from "../constants/app.constants.js";
 
 // 오늘 인기있는 뉴스
@@ -84,14 +85,21 @@ export const getInterestStockNews = async (req, res) => {
 // 최신 뉴스
 export const getRecentNews = async (req, res) => {
   try {
+    const { page = 1 } = req.query;
+    const limit = 4;
+    const skip = (page - 1) * limit;
+
     // 데이터베이스 연결
     await connectDB().catch((err) => {
       res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
       return;
     });
-    const recentNews = await News.find().sort({ published_time: -1 });
 
-    res.status(200).json({ ok: true, data: recentNews ?? [] });
+    const recent_news = await News.find().sort({ published_time: -1 }).skip(skip).limit(limit);
+    const total_page = Math.ceil((await News.countDocuments()) / 4);
+    const now_page = Number(page);
+
+    res.status(200).json({ ok: true, data: { total_page, now_page, recent_news } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
@@ -112,16 +120,20 @@ export const getNews = async (req, res) => {
     const news = await News.findOne({ index });
     const relative_stock = news.relative_stock;
 
-    const relativeNews = await News.find(
+    // 관련 주식
+    const stock_data = await Stock.find({ reuters_code: { $in: relative_stock } });
+
+    // 관련 뉴스
+    const relative_news = await News.find(
       { relative_stock: { $in: relative_stock }, index: { $nin: index } },
-      { title: 1, published_time: 1, publisher: 1 }
+      { _id: 0, index: 1, title: 1, published_time: 1, publisher: 1 }
     )
       .sort({
         published_time: -1,
       })
       .limit(4);
 
-    res.status(200).json({ ok: true, data: { news, relativeNews } });
+    res.status(200).json({ ok: true, data: { news, stock_data, relative_news } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
