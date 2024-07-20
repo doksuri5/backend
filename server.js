@@ -78,6 +78,6 @@ for (const file of routeFiles) {
 connectDB();
 
 // 서버 연결
-app.listen(8080, () => {
-  console.log("백엔드 서버 연결");
+app.listen(process.env.PORT, () => {
+  console.log(`${process.env.PORT} 백엔드 서버 연결`);
 });
