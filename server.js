@@ -10,6 +10,7 @@ import MongoStore from "connect-mongo";
 import morgan from "morgan";
 
 import connectDB from "./database/db.js";
+import { setupSwagger } from "./swagger/swagger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,8 @@ app.use(
     credentials: true,
   })
 );
+
+setupSwagger(app);
 
 if (process.env.NODE_ENV === "development") {
   morgan.token("headers", (req) => JSON.stringify(req.headers, null, 2));
