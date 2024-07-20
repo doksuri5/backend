@@ -1,4 +1,5 @@
 import { hangulIncludes } from "es-hangul";
+import mongoose from "mongoose";
 import connectDB from "../database/db.js";
 import InterestStock from "../schemas/interestStock-schema.js";
 import News from "../schemas/news-schema.js";
@@ -7,12 +8,11 @@ import { VARIOUS_STOCK_TO_REUTERS_CODE } from "../constants/app.constants.js";
 
 // 오늘 인기있는 뉴스
 export const getTodayPopularNews = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-      return;
-    });
+    await connectDB();
 
     const koreanOffset = 9 * 60 * 60 * 1000; // 한국 시간은 UTC+9
 
@@ -35,7 +35,8 @@ export const getTodayPopularNews = async (req, res) => {
 
       const todayNews = await News.find({ published_time: { $gte: startDateString, $lte: endDateString } })
         .sort({ score: -1, view: -1, published_time: -1 })
-        .limit(3 - news.length);
+        .limit(3 - news.length)
+        .session(session);
 
       news = news.concat(todayNews);
 
@@ -46,25 +47,28 @@ export const getTodayPopularNews = async (req, res) => {
       startDate.setDate(startDate.getDate() - 1);
     }
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, data: news ?? [] });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
 // 관심종목과 관련된 뉴스
 export const getInterestStockNews = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { snsId } = req.session;
 
     // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-      return;
-    });
+    await connectDB();
 
-    const { stock_list } = await InterestStock.findOne({ user_snsId: snsId, is_delete: false });
+    const { stock_list } = await InterestStock.findOne({ user_snsId: snsId, is_delete: false }).session(session);
     const interest_stock_list = stock_list.map((item) => item.reuters_code);
 
     const interestStockNews = await News.find({ relative_stock: { $in: interest_stock_list } })
@@ -73,55 +77,61 @@ export const getInterestStockNews = async (req, res) => {
         score: -1,
         view: -1,
       })
-      .limit(6);
+      .limit(6)
+      .session(session);
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, data: interestStockNews ?? [] });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
 // 최신 뉴스
 export const getRecentNews = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { page = 1 } = req.query;
     const limit = 4;
     const skip = (page - 1) * limit;
 
     // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-      return;
-    });
+    await connectDB();
 
-    const recent_news = await News.find().sort({ published_time: -1 }).skip(skip).limit(limit);
-    const total_page = Math.ceil((await News.countDocuments()) / 4);
+    const recent_news = await News.find().sort({ published_time: -1 }).skip(skip).limit(limit).session(session);
+    const total_page = Math.ceil((await News.countDocuments().session(session)) / 4);
     const now_page = Number(page);
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, data: { total_page, now_page, recent_news } });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
 // 1개 뉴스 조회 (관련 기사 포함)
 export const getNews = async (req, res) => {
   const { index } = req.params;
-
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-      return;
-    });
+    await connectDB();
 
-    const news = await News.findOne({ index });
+    const news = await News.findOne({ index }).session(session);
     const relative_stock = news.relative_stock;
 
     // 관련 주식
-    const stock_data = await Stock.find({ reuters_code: { $in: relative_stock } });
+    const stock_data = await Stock.find({ reuters_code: { $in: relative_stock } }).session(session);
 
     // 관련 뉴스
     const relative_news = await News.find(
@@ -131,34 +141,45 @@ export const getNews = async (req, res) => {
       .sort({
         published_time: -1,
       })
-      .limit(4);
+      .limit(4)
+      .session(session);
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, data: { news, stock_data, relative_news } });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
 // 주요 뉴스
 export const hotNews = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     // 데이터베이스 연결
-    await connectDB().catch((err) => {
-      res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-      return;
-    });
-    const hotNews = await News.findOne().sort({ score: -1, view: -1, published_time: -1 });
+    await connectDB();
 
+    const hotNews = await News.findOne().sort({ score: -1, view: -1, published_time: -1 }).session(session);
+
+    await session.commitTransaction();
     res.status(200).json({ ok: true, data: hotNews });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
 // 발견 페이지 - 검색에 따른 뉴스 조회
 export const getSearchNews = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { stock_name } = req.params;
 
@@ -168,6 +189,7 @@ export const getSearchNews = async (req, res) => {
       .map((stock) => stock[1]);
 
     if (searchStockList.length === 0) {
+      await session.commitTransaction();
       res.status(200).json({ ok: true, data: [] });
       return;
     }
@@ -179,21 +201,29 @@ export const getSearchNews = async (req, res) => {
     const searchNews = await News.find(
       { relative_stock: { $in: searchStockList } },
       { index: 1, title: 1, published_time: 1, publisher: 1, thumbnail_url: 1, _id: 1 }
-    ).sort({
-      published_time: -1,
-      score: -1,
-      view: -1,
-    });
+    )
+      .sort({
+        published_time: -1,
+        score: -1,
+        view: -1,
+      })
+      .session(session);
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, data: searchNews ?? [] });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
 // 발견 페이지 - 검색에 따른 뉴스 조회
 export const getSearchNewsTotalNum = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { stock_name } = req.params;
 
@@ -203,6 +233,7 @@ export const getSearchNewsTotalNum = async (req, res) => {
       .map((stock) => stock[1]);
 
     if (searchStockList.length === 0) {
+      await session.commitTransaction();
       res.status(200).json({ ok: true, data: [] });
       return;
     }
@@ -213,11 +244,15 @@ export const getSearchNewsTotalNum = async (req, res) => {
     // 전체 뉴스 개수를 가져옵니다
     const totalNewsCount = await News.countDocuments({
       relative_stock: { $in: searchStockList },
-    });
+    }).session(session);
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, data: [totalNewsCount] });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
