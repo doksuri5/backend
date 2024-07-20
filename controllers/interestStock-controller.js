@@ -56,6 +56,13 @@ export const getDetailInterestStocks = async (req, res) => {
       return;
     });
 
+    // 유저 정보 가져오기
+    const user = await User.findOne({ sns_id: snsId, is_delete: false });
+    if (!user) {
+      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      return;
+    }
+
     // 해당 유저의 주식 리스트를 조회 (is_delete가 false인 항목만)
     const interestStock = await InterestStock.findOne({
       user_snsId: snsId,
@@ -81,9 +88,9 @@ export const getDetailInterestStocks = async (req, res) => {
       // 순서에 맞게 정렬
       const sortedStockList = _.sortBy(mergeStockList, "order");
 
-      res.status(200).json({ ok: true, data: sortedStockList ?? [] }); // 없으면 null 반환
+      res.status(200).json({ ok: true, data: sortedStockList ?? [] });
     } else {
-      res.status(200).json({ ok: true, data: interestStock ?? [] }); // 없으면 null 반환
+      res.status(200).json({ ok: true, data: [] });
     }
   } catch (err) {
     console.error(err);
@@ -102,6 +109,7 @@ export const insertInterestStock = async (req, res) => {
       res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
       return;
     });
+
     // 유저 정보 가져오기
     const user = await User.findOne({ sns_id: snsId, is_delete: false });
     if (!user) {
@@ -145,7 +153,6 @@ export const deleteInterestStock = async (req, res) => {
     });
 
     const user = await User.findOne({ sns_id: snsId, is_delete: false });
-
     if (!user) {
       res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       return;
