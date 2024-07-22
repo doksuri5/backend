@@ -77,6 +77,13 @@ for (const file of routeFiles) {
 // DB 연결
 connectDB();
 
+app.get("/", (req, res) => {
+  res.send(`<div>
+    <p>${process.env.PORT} 백엔드 api 서버 연결</p>
+    <p>${process.env.CLIENT_URL} 프론트 엔드포인드 연결</p>
+    </div>`);
+});
+
 // 서버 연결
 app.listen(process.env.PORT, () => {
   console.log(`${process.env.PORT} 백엔드 서버 연결`);
