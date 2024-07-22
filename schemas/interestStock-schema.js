@@ -17,17 +17,21 @@ const InterestStockSchema = new mongoose.Schema({
 
 // 한 개의 주식을 추가하는 메서드
 InterestStockSchema.methods.addStock = async function (stock, options = {}) {
-  const maxOrder = this.stock_list.length > 0 ? Math.max(...this.stock_list.map((s) => s.order)) : 0;
-
   // 이미 추가된 주식인지 확인
   if (this.stock_list.find((s) => s.reuters_code === stock)) {
     throw new Error("이미 추가된 주식입니다.");
   }
 
+  // 모든 주식의 order를 1씩 증가시킴
+  this.stock_list.forEach((s) => {
+    s.order += 1;
+  });
+
+  // 새로운 주식을 order 1로 추가
   this.stock_list.push({
     reuters_code: stock,
     created_at: getKoreanTime(),
-    order: maxOrder + 1,
+    order: 1,
   });
 
   await this.save(options);
