@@ -11,7 +11,7 @@ import PopularSearch from "../schemas/popularSearch-schema.js";
 import User from "../schemas/user-schema.js";
 
 import { getKoreanTime } from "../utils/getKoreanTime.js";
-import { VARIOUS_STOCK_TO_NAME } from "../constants/app.constants.js";
+import { EN_STOCK_NAMES_TO_KO_STOCK_NAMES, VARIOUS_STOCK_TO_NAME } from "../constants/app.constants.js";
 
 // 검색 캐시 초기화 (5초)
 const searchCache = new NodeCache({ stdTTL: 5 });
@@ -60,12 +60,24 @@ export const getSearchStocks = async (req, res) => {
     const { search_text } = req.params;
     const { snsId } = req.session;
 
+    const result = [];
+    const lowerQuery = search_text.toLowerCase();
+
+    // 영어 검색
+    for (const code in EN_STOCK_NAMES_TO_KO_STOCK_NAMES) {
+      if (code.includes(lowerQuery)) {
+        result.push(EN_STOCK_NAMES_TO_KO_STOCK_NAMES[code]);
+      }
+    }
+
     // 검색어가 6가지 종목 안에 포함되는 경우 (초성 포함)
     const searchStockList = Object.entries(VARIOUS_STOCK_TO_NAME)
       .filter((stock) => hangulIncludes(stock[0], search_text))
       .map((stock) => stock[1]);
 
-    if (searchStockList.length === 0) {
+    const searchList = [...new Set([...result, ...searchStockList])];
+
+    if (searchList.length === 0) {
       await session.commitTransaction();
       res.status(200).json({ ok: true, data: [] });
       return;
@@ -82,7 +94,7 @@ export const getSearchStocks = async (req, res) => {
       return;
     }
 
-    const stockData = await Stock.find({ stock_name: { $in: searchStockList } }).session(session);
+    const stockData = await Stock.find({ stock_name: { $in: searchList } }).session(session);
 
     await session.commitTransaction();
     res.status(200).json({ ok: true, data: stockData });
