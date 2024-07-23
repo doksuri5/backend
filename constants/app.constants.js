@@ -37,3 +37,21 @@ export const VARIOUS_STOCK_TO_NAME = {
   유니티: "유니티소프트웨어",
   U: "유니티소프트웨어",
 };
+export const EN_STOCK_NAMES_TO_REUTERS_CODE = {
+  alphabet: "GOOGL.O",
+  google: "GOOGL.O",
+  amazon: "AMZN.O",
+  apple: "AAPL.O",
+  microsoft: "MSFT.O",
+  tesla: "TSLA.O",
+  unity: "U",
+};
+export const EN_STOCK_NAMES_TO_KO_STOCK_NAMES = {
+  alphabet: "알파벳 Class A",
+  google: "알파벳 Class A",
+  amazon: "아마존닷컴",
+  apple: "애플",
+  microsoft: "마이크로소프트",
+  tesla: "테슬라",
+  unity: "유니티소프트웨어",
+};
