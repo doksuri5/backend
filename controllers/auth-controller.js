@@ -14,6 +14,63 @@ import { send_main_func } from "../utils/emailSendUtil.js";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
 import { generatePassword } from "../utils/generatePassword.js";
 
+export const userCheck = async (req, res) => {
+  try {
+    const { email, pw } = req.body;
+    const user = await User.findOne({ email, is_delete: false }).select("+password");
+    if (!user) {
+      res.status(200).json({ ok: false, message: "Credentials Login Fail : 가입되지 않은 회원" });
+      return;
+    }
+
+    // 비밀번호 같은지 여부 판별
+    if (pw !== "" && !(await bcrypt.compare(pw, user.password))) {
+      res.status(200).json({ ok: false, message: "Credentials Login Fail : 비밀번호 불일치" });
+      return;
+    }
+
+    const { password, ...userWithoutSnsId } = user.toObject();
+
+    res.status(200).json({ ok: true, data: userWithoutSnsId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+export const getUser = async (req, res) => {
+  try {
+    const { email, is_delete } = req.body;
+    const existingUser = await User.findOne(
+      {
+        email,
+        is_delete,
+      },
+      { email: 1 }
+    );
+    res.status(200).json({ ok: true, data: existingUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+export const getSocialUser = async (req, res) => {
+  try {
+    const { email = "", is_delete, sns_id, login_type } = req.body;
+    let socialUser;
+    if (login_type === "kakao") {
+      socialUser = await User.findOne({ is_delete, sns_id, login_type });
+    } else {
+      socialUser = await User.findOne({ email, is_delete, sns_id, login_type });
+    }
+    res.status(200).json({ ok: true, data: socialUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
 // 인증코드 이메일 발송 (탈퇴여부 체크)
 export const sendEmail = async (req, res) => {
   const session = await mongoose.startSession();

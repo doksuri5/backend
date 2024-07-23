@@ -233,4 +233,8 @@ router.post("/auth/registerSocial", authController.registerSocial); // 소셜 �
  */
 router.post("/auth/findPassword", authController.findPassword); // 비밀번호 찾기 (임시 비밀번호 발급)
 
+router.post("/auth/userCheck", authController.userCheck);
+router.post("/auth/getUser", authController.getUser);
+router.post("/auth/getSocialUser", authController.getSocialUser);
+
 export default router;
