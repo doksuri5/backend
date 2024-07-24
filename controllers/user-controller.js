@@ -7,6 +7,8 @@ import Withdraw from "../schemas/withdraw-schema.js";
 import InterestStock from "../schemas/interestStock-schema.js";
 import Cert from "../schemas/cert-schema.js";
 import Propensity from "../schemas/propensity-schema.js";
+import RecentSearch from "../schemas/recentSearch-schema.js";
+import RecentSearchText from "../schemas/recentSearchText-schema.js";
 
 import uploadProfileImg from "../middleware/imageUpload.js";
 import deleteFileFromS3 from "../middleware/imageDelete.js";
@@ -78,11 +80,10 @@ export const withdraw = async (req, res) => {
     });
     await withdraw.save({ session });
 
-    await InterestStock.findOneAndUpdate(
-      { user_snsId: updatedUser.sns_id, is_delete: false },
-      { $set: { is_delete: true } },
-      { session }
-    );
+    await InterestStock.findOneAndUpdate(...deleteOption(updatedUser.sns_id, session));
+    await RecentSearch.findOneAndUpdate(...deleteOption(updatedUser.sns_id, session));
+    await RecentSearchText.findOneAndUpdate(...deleteOption(updatedUser.sns_id, session));
+    await Propensity.findOneAndUpdate(...deleteOption(updatedUser.sns_id, session));
 
     await session.commitTransaction();
     res.status(200).json({ ok: true, message: "탈퇴 완료" });
@@ -92,6 +93,10 @@ export const withdraw = async (req, res) => {
   } finally {
     session.endSession();
   }
+};
+
+const deleteOption = (sns_id, session) => {
+  return [{ user_snsId: sns_id, is_delete: false }, { $set: { is_delete: true } }, { session }];
 };
 
 // 유저 프로필 수정
