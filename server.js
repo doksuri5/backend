@@ -80,6 +80,7 @@ connectDB();
 app.get("/", (req, res) => {
   res.send(`<div>
     <p>${process.env.PORT} 백엔드 api 서버 연결</p>
+    <p>v1.1.0</p>
     <p>${process.env.CLIENT_URL} 프론트 엔드포인드 연결</p>
     </div>`);
 });
