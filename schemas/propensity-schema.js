@@ -4,6 +4,7 @@ import { getKoreanTime } from "../utils/getKoreanTime.js";
 const PropensitySchema = new mongoose.Schema({
   user_snsId: { type: String, required: true },
   login_type: { type: String, required: true },
+  is_delete: { type: Boolean, default: false },
   is_agree_credit_info: { type: Boolean, required: true },
   invest_propensity: {
     type: mongoose.Schema.Types.Mixed,
