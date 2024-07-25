@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { v4 as uuid } from "uuid";
 
@@ -6,21 +7,82 @@ import User from "../schemas/user-schema.js";
 import Cert from "../schemas/cert-schema.js";
 import InterestStock from "../schemas/interestStock-schema.js";
 import Log from "../schemas/log-schema.js";
+import Propensity from "../schemas/propensity-schema.js";
 
 import uploadProfileImg from "../middleware/imageUpload.js";
 import { send_main_func } from "../utils/emailSendUtil.js";
 import { getKoreanTime } from "../utils/getKoreanTime.js";
 import { generatePassword } from "../utils/generatePassword.js";
 
+export const userCheck = async (req, res) => {
+  try {
+    const { email, pw } = req.body;
+    const user = await User.findOne({ email, is_delete: false }).select("+password");
+    if (!user) {
+      res.status(200).json({ ok: false, message: "Credentials Login Fail : 가입되지 않은 회원" });
+      return;
+    }
+
+    // 비밀번호 같은지 여부 판별
+    if (pw !== "" && !(await bcrypt.compare(pw, user.password))) {
+      res.status(200).json({ ok: false, message: "Credentials Login Fail : 비밀번호 불일치" });
+      return;
+    }
+
+    const { password, ...userWithoutSnsId } = user.toObject();
+
+    res.status(200).json({ ok: true, data: userWithoutSnsId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+export const getUser = async (req, res) => {
+  try {
+    const { email, is_delete } = req.body;
+    const existingUser = await User.findOne(
+      {
+        email,
+        is_delete,
+      },
+      { email: 1 }
+    );
+    res.status(200).json({ ok: true, data: existingUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+export const getSocialUser = async (req, res) => {
+  try {
+    const { email = "", is_delete, sns_id, login_type } = req.body;
+    let socialUser;
+    if (login_type === "kakao") {
+      socialUser = await User.findOne({ is_delete, sns_id, login_type });
+    } else {
+      socialUser = await User.findOne({ email, is_delete, sns_id, login_type });
+    }
+    res.status(200).json({ ok: true, data: socialUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
 // 인증코드 이메일 발송 (탈퇴여부 체크)
 export const sendEmail = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   const { email } = req.body;
   try {
     await connectDB();
 
-    const user = await User.findOne({ email, is_delete: false });
+    const user = await User.findOne({ email, is_delete: false }).session(session);
     if (user) {
       res.status(401).json({ ok: false, message: "이미 가입된 이메일입니다." });
+      await session.abortTransaction();
       return;
     }
 
@@ -29,26 +91,35 @@ export const sendEmail = async (req, res) => {
     const code = cert.generateCode(); // 인증 코드 및 만료 시간 생성
 
     await send_main_func({ type: "code", to: email, VALUE: code });
-    await cert.save();
+    await cert.save({ session });
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, message: "이메일 전송 완료" });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
 // 인증 코드 체크
 export const verifyCode = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   const { email, code } = req.body;
   try {
     await connectDB();
-    const cert = await Cert.findOne({ user_email: email }).sort({
-      created_at: -1,
-    });
+    const cert = await Cert.findOne({ user_email: email })
+      .sort({
+        created_at: -1,
+      })
+      .session(session);
 
     if (!cert) {
       res.status(404).json({ ok: false, message: "인증 요청이 없습니다." });
+      await session.abortTransaction();
       return;
     }
 
@@ -59,13 +130,18 @@ export const verifyCode = async (req, res) => {
         ok: false,
         message: "인증 코드가 유효하지 않거나 만료되었습니다.",
       });
+      await session.abortTransaction();
       return;
     }
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, message: "인증 성공" });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -73,19 +149,31 @@ export const verifyCode = async (req, res) => {
 export const register = [
   uploadProfileImg.single("profile"),
   async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
-      const { name, email, password, birth, phone, gender, nickname, reuters_code, language = "ko" } = req.body;
+      const {
+        name,
+        email,
+        password,
+        birth,
+        phone,
+        gender,
+        nickname,
+        reuters_code,
+        language = "ko",
+        isAgreeCreditInfo,
+        investPropensity,
+      } = req.body;
 
       // 데이터베이스 연결
-      await connectDB().catch((err) => {
-        res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-        return;
-      });
+      await connectDB();
 
       // 동일한 이메일을 가진 사용자가 이미 존재하는지 확인 (탈퇴여부 체크)
-      const existingUser = await User.findOne({ email, is_delete: false });
+      const existingUser = await User.findOne({ email, is_delete: false }).session(session);
       if (existingUser) {
         res.status(400).json({ ok: false, message: "이미 회원가입이 된 이메일입니다." });
+        await session.abortTransaction();
         return;
       }
 
@@ -105,7 +193,7 @@ export const register = [
           user_snsId: sns_id,
           user_email: email,
         });
-        await interestStock.addStocks(parse_stockList);
+        await interestStock.addStocks(parse_stockList, { session });
       }
 
       const user = new User({
@@ -123,11 +211,34 @@ export const register = [
       });
 
       // 데이터베이스에 사용자 저장
-      await user.save();
+      await user.save({ session });
 
+      // 투자성향 저장
+      if (isAgreeCreditInfo) {
+        const propensity = new Propensity({
+          user_snsId: sns_id,
+          login_type: "local",
+          is_agree_credit_info: isAgreeCreditInfo,
+          invest_propensity: investPropensity,
+        });
+        await propensity.save({ session });
+      } else {
+        const propensity = new Propensity({
+          user_snsId: sns_id,
+          login_type: "local",
+          is_agree_credit_info: isAgreeCreditInfo,
+        });
+        await propensity.save({ session });
+      }
+
+      await session.commitTransaction();
       res.status(200).json({ ok: true, message: "회원가입 성공" });
     } catch (err) {
+      console.error(err);
+      await session.abortTransaction();
       res.status(500).json({ ok: false, message: err.message });
+    } finally {
+      session.endSession();
     }
   },
 ];
@@ -136,6 +247,8 @@ export const register = [
 export const registerSocial = [
   uploadProfileImg.single("profile"),
   async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
       const {
         sns_id,
@@ -148,18 +261,18 @@ export const registerSocial = [
         reuters_code,
         language = "ko",
         login_type,
+        isAgreeCreditInfo,
+        investPropensity,
       } = req.body;
 
       // 데이터베이스 연결
-      await connectDB().catch((err) => {
-        res.status(500).json({ ok: false, message: "데이터베이스 연결에 실패했습니다." });
-        return;
-      });
+      await connectDB();
 
       // 동일한 이메일을 가진 사용자가 이미 존재하는지 확인 (탈퇴여부 체크)
-      const existingUser = await User.findOne({ email, is_delete: false });
+      const existingUser = await User.findOne({ email, is_delete: false }).session(session);
       if (existingUser) {
         res.status(400).json({ ok: false, message: "이미 회원가입이 된 이메일입니다." });
+        await session.abortTransaction();
         return;
       }
 
@@ -174,7 +287,7 @@ export const registerSocial = [
           user_snsId: sns_id,
           user_email: email,
         });
-        await interestStock.addStocks(parse_stockList);
+        await interestStock.addStocks(parse_stockList, { session });
       }
 
       const user = new User({
@@ -191,25 +304,51 @@ export const registerSocial = [
       });
 
       // 데이터베이스에 사용자 저장
-      await user.save();
+      await user.save({ session });
 
+      // 투자성향 저장
+      if (isAgreeCreditInfo) {
+        const propensity = new Propensity({
+          user_snsId: sns_id,
+          login_type,
+          is_agree_credit_info: isAgreeCreditInfo,
+          invest_propensity: investPropensity,
+        });
+        await propensity.save({ session });
+      } else {
+        const propensity = new Propensity({
+          user_snsId: sns_id,
+          login_type,
+          is_agree_credit_info: isAgreeCreditInfo,
+        });
+        await propensity.save({ session });
+      }
+
+      await session.commitTransaction();
       res.status(200).json({ ok: true, message: "회원가입 성공" });
     } catch (err) {
+      console.error(err);
+      await session.abortTransaction();
       res.status(500).json({ ok: false, message: err.message });
+    } finally {
+      session.endSession();
     }
   },
 ];
 
 // 비밀번호 찾기
 export const findPassword = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   const { name, email } = req.body;
 
   try {
     await connectDB();
 
-    const user = await User.findOne({ name, email, is_delete: false });
+    const user = await User.findOne({ name, email, is_delete: false }).session(session);
     if (!user) {
       res.status(404).json({ ok: false, message: "가입되지 않은 이메일입니다." });
+      await session.abortTransaction();
       return;
     }
 
@@ -221,6 +360,7 @@ export const findPassword = async (req, res) => {
           message: "소셜로그인 가입된 이메일입니다.",
         },
       });
+      await session.abortTransaction();
       return;
     }
 
@@ -237,18 +377,25 @@ export const findPassword = async (req, res) => {
           password: hashPassword,
           updated_at: getKoreanTime(),
         },
-      }
+      },
+      { session }
     );
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, message: "이메일 전송 완료" });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
 // 로그인
 export const login = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { sns_id, email, autoLogin, login_type } = req.body;
 
@@ -266,12 +413,17 @@ export const login = async (req, res) => {
 
     // 로그 추가
     await connectDB();
-    await Log.create({ user_email: email, login_type: login_type });
+    const log = new Log({ user_email: email, login_type: login_type });
+    await log.save({ session });
 
+    await session.commitTransaction();
     res.status(200).json({ ok: true, message: "로그인 성공" });
   } catch (err) {
     console.error(err);
+    await session.abortTransaction();
     res.status(500).json({ ok: false, message: err.message });
+  } finally {
+    session.endSession();
   }
 };
 

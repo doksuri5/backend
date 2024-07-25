@@ -11,11 +11,14 @@ export const VARIOUS_STOCK_TO_REUTERS_CODE = {
   "GOOGL.O": "GOOGL.O",
   알파벳: "GOOGL.O",
   "Class A": "GOOGL.O",
+  "알파벳 Class A": "GOOGL.O",
   아마존: "AMZN.O",
+  아마존닷컴: "AMZN.O",
   "AMZN.O": "AMZN.O",
   테슬라: "TSLA.O",
   "TSLA.O": "TSLA.O",
   유니티: "U",
+  유니티소프트웨어: "U",
   U: "U",
 };
 export const VARIOUS_STOCK_TO_NAME = {
@@ -29,11 +32,32 @@ export const VARIOUS_STOCK_TO_NAME = {
   GOOGLE: "알파벳 Class A",
   "GOOGL.O": "알파벳 Class A",
   알파벳: "알파벳 Class A",
+  "알파벳 Class A": "알파벳 Class A",
   "Class A": "알파벳 Class A",
   아마존: "아마존닷컴",
+  아마존닷컴: "아마존닷컴",
   "AMZN.O": "아마존닷컴",
   테슬라: "테슬라",
   "TSLA.O": "테슬라",
+  유니티소프트웨어: "유니티소프트웨어",
   유니티: "유니티소프트웨어",
   U: "유니티소프트웨어",
+};
+export const EN_STOCK_NAMES_TO_REUTERS_CODE = {
+  alphabet: "GOOGL.O",
+  google: "GOOGL.O",
+  amazon: "AMZN.O",
+  apple: "AAPL.O",
+  microsoft: "MSFT.O",
+  tesla: "TSLA.O",
+  unity: "U",
+};
+export const EN_STOCK_NAMES_TO_KO_STOCK_NAMES = {
+  alphabet: "알파벳 Class A",
+  google: "알파벳 Class A",
+  amazon: "아마존닷컴",
+  apple: "애플",
+  microsoft: "마이크로소프트",
+  tesla: "테슬라",
+  unity: "유니티소프트웨어",
 };
