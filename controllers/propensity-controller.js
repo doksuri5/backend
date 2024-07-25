@@ -1,6 +1,7 @@
 import connectDB from "../database/db.js";
 import Propensity from "../schemas/propensity-schema.js";
 import User from "../schemas/user-schema.js";
+import { getKoreanTime } from "../utils/getKoreanTime.js";
 
 // 투자성향 가져오기
 export const getPropensity = async (req, res) => {
