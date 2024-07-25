@@ -33,9 +33,12 @@ export const language = async (req, res) => {
     // 데이터베이스 연결
     await connectDB();
 
-    const user = await User.findOneAndUpdate({ snsId }, { $set: { language: language } }, { new: true }).session(
-      session
-    );
+    const user = await User.findOneAndUpdate(
+      { sns_id: snsId, is_delete: false },
+      { $set: { language: language } },
+      { new: true }
+    ).session(session);
+
     await session.commitTransaction();
     res.status(200).json({ ok: true, data: user });
   } catch (err) {
@@ -57,11 +60,19 @@ export const withdraw = async (req, res) => {
     // 데이터베이스 연결
     await connectDB();
 
-    const user = await User.findOne({ sns_id: snsId, is_delete: false }).session(session);
+    const user = await User.findOne({
+      sns_id: snsId,
+      is_delete: false,
+    }).session(session);
 
     // 클라이언트에서 보낸 이메일과 세션으로 DB 조회한 이메일이 다른 경우
     if (!user || email !== user.email) {
-      res.status(400).json({ ok: false, message: "입력한 이메일이 현재 사용자의 이메일과 일치하지 않습니다." });
+      res
+        .status(400)
+        .json({
+          ok: false,
+          message: "입력한 이메일이 현재 사용자의 이메일과 일치하지 않습니다.",
+        });
       await session.abortTransaction();
       return;
     }
@@ -80,10 +91,18 @@ export const withdraw = async (req, res) => {
     });
     await withdraw.save({ session });
 
-    await InterestStock.findOneAndUpdate(...deleteOption(updatedUser.sns_id, session));
-    await RecentSearch.findOneAndUpdate(...deleteOption(updatedUser.sns_id, session));
-    await RecentSearchText.findOneAndUpdate(...deleteOption(updatedUser.sns_id, session));
-    await Propensity.findOneAndUpdate(...deleteOption(updatedUser.sns_id, session));
+    await InterestStock.findOneAndUpdate(
+      ...deleteOption(updatedUser.sns_id, session)
+    );
+    await RecentSearch.findOneAndUpdate(
+      ...deleteOption(updatedUser.sns_id, session)
+    );
+    await RecentSearchText.findOneAndUpdate(
+      ...deleteOption(updatedUser.sns_id, session)
+    );
+    await Propensity.findOneAndUpdate(
+      ...deleteOption(updatedUser.sns_id, session)
+    );
 
     await session.commitTransaction();
     res.status(200).json({ ok: true, message: "탈퇴 완료" });
@@ -96,7 +115,11 @@ export const withdraw = async (req, res) => {
 };
 
 const deleteOption = (sns_id, session) => {
-  return [{ user_snsId: sns_id, is_delete: false }, { $set: { is_delete: true } }, { session }];
+  return [
+    { user_snsId: sns_id, is_delete: false },
+    { $set: { is_delete: true } },
+    { session },
+  ];
 };
 
 // 유저 프로필 수정
@@ -113,9 +136,14 @@ export const updateUserProfile = [
       await connectDB();
 
       // 유저 조회
-      const user = await User.findOne({ sns_id: snsId, is_delete: false }).session(session);
+      const user = await User.findOne({
+        sns_id: snsId,
+        is_delete: false,
+      }).session(session);
       if (!user) {
-        res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+        res
+          .status(401)
+          .json({ ok: false, message: "사용자를 찾을 수 없습니다." });
         await session.abortTransaction();
         return;
       }
@@ -143,15 +171,26 @@ export const updateUserProfile = [
       await User.findOneAndUpdate(
         { sns_id: snsId, is_delete: false },
         {
-          $set: { nickname, gender, profile: new_profile_img, updated_at: getKoreanTime() },
+          $set: {
+            nickname,
+            gender,
+            profile: new_profile_img,
+            updated_at: getKoreanTime(),
+          },
         },
         { session }
       );
 
       // 유저 관심주식 조회
-      const interestStock = await InterestStock.findOne({ user_snsId: user.sns_id, is_delete: false }).session(session);
+      const interestStock = await InterestStock.findOne({
+        user_snsId: user.sns_id,
+        is_delete: false,
+      }).session(session);
 
-      const parse_stockList = typeof interest_stocks === "string" ? JSON.parse(interest_stocks) : interest_stocks;
+      const parse_stockList =
+        typeof interest_stocks === "string"
+          ? JSON.parse(interest_stocks)
+          : interest_stocks;
 
       // body에 관심 주식을 넣은 경우
       if (parse_stockList && parse_stockList.length > 0) {
@@ -188,16 +227,22 @@ export const updateUserInfo = async (req, res) => {
     await connectDB();
 
     // 고정 값으로 보낸 이메일과 DB에 저장된 이메일이 같은지 확인
-    const user = await User.findOne({ sns_id: snsId, is_delete: false }).select("+password").session(session);
+    const user = await User.findOne({ sns_id: snsId, is_delete: false })
+      .select("+password")
+      .session(session);
     if (!user) {
-      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      res
+        .status(401)
+        .json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       await session.abortTransaction();
       return;
     }
 
     // 클라이언트에서 보낸 이메일과 db에 저장된 이메일이 다른 경우
     if (user.email !== email) {
-      res.status(404).json({ ok: false, message: "회원 정보가 일치하지 않습니다." });
+      res
+        .status(404)
+        .json({ ok: false, message: "회원 정보가 일치하지 않습니다." });
       await session.abortTransaction();
       return;
     }
@@ -259,7 +304,9 @@ export const getUser = async (req, res) => {
     ).session(session);
 
     if (!user) {
-      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      res
+        .status(401)
+        .json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       await session.abortTransaction();
       return;
     }
@@ -280,15 +327,25 @@ export const getUser = async (req, res) => {
     if (interestStock) {
       interestStock.stock_list.sort((a, b) => a.order - b.order);
 
-      const reutersCodeList = interestStock.stock_list.map((stock) => stock.reuters_code);
+      const reutersCodeList = interestStock.stock_list.map(
+        (stock) => stock.reuters_code
+      );
       res.status(200).json({
         ok: true,
-        data: { ...userWithoutSnsId, interest_stocks: reutersCodeList, user_propensity: userPropensity },
+        data: {
+          ...userWithoutSnsId,
+          interest_stocks: reutersCodeList,
+          user_propensity: userPropensity,
+        },
       });
     } else {
       res.status(200).json({
         ok: true,
-        data: { ...userWithoutSnsId, interest_stocks: null, user_propensity: userPropensity },
+        data: {
+          ...userWithoutSnsId,
+          interest_stocks: null,
+          user_propensity: userPropensity,
+        },
       }); // 없으면 null 반환
     }
   } catch (err) {
@@ -310,10 +367,14 @@ export const passwordCert = async (req, res) => {
     // 데이터베이스 연결
     await connectDB();
 
-    const user = await User.findOne({ sns_id: snsId, is_delete: false }).select("+password").session(session);
+    const user = await User.findOne({ sns_id: snsId, is_delete: false })
+      .select("+password")
+      .session(session);
 
     if (!user) {
-      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      res
+        .status(401)
+        .json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       await session.abortTransaction();
       return;
     }
@@ -321,7 +382,11 @@ export const passwordCert = async (req, res) => {
     if (user.email !== email) {
       res
         .status(401)
-        .json({ ok: false, message: "현재 사용자가 다른 이메일을 사용하고 있습니다. 다시 로그인 해주세요." });
+        .json({
+          ok: false,
+          message:
+            "현재 사용자가 다른 이메일을 사용하고 있습니다. 다시 로그인 해주세요.",
+        });
       await session.abortTransaction();
       return;
     }
@@ -352,9 +417,14 @@ export const emailCert = async (req, res) => {
     // 데이터베이스 연결
     await connectDB();
 
-    const user = await User.findOne({ sns_id: snsId, is_delete: false }).session(session);
+    const user = await User.findOne({
+      sns_id: snsId,
+      is_delete: false,
+    }).session(session);
     if (!user) {
-      res.status(401).json({ ok: false, message: "사용자를 찾을 수 없습니다." });
+      res
+        .status(401)
+        .json({ ok: false, message: "사용자를 찾을 수 없습니다." });
       await session.abortTransaction();
       return;
     }
@@ -362,7 +432,11 @@ export const emailCert = async (req, res) => {
     if (user.email !== email) {
       res
         .status(401)
-        .json({ ok: false, message: "현재 사용자가 다른 이메일을 사용하고 있습니다. 다시 로그인 해주세요." });
+        .json({
+          ok: false,
+          message:
+            "현재 사용자가 다른 이메일을 사용하고 있습니다. 다시 로그인 해주세요.",
+        });
       await session.abortTransaction();
       return;
     }
