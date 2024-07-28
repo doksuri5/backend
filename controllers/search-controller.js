@@ -228,12 +228,24 @@ export const saveRecentSearch = async (req, res) => {
     const search_text = req.body.stock_name;
     const { snsId } = req.session;
 
+    const lowerQuery = search_text.toLowerCase();
+
+    // 영어 검색
+    const EnStockList = [];
+    for (const code in EN_STOCK_NAMES_TO_KO_STOCK_NAMES) {
+      if (code.includes(lowerQuery)) {
+        EnStockList.push(EN_STOCK_NAMES_TO_KO_STOCK_NAMES[code]);
+      }
+    }
+
     // 검색어가 6가지 종목 안에 포함되는 경우 (초성 포함)
-    const searchStockList = Object.entries(VARIOUS_STOCK_TO_NAME)
+    const KoStockList = Object.entries(VARIOUS_STOCK_TO_NAME)
       .filter((stock) => hangulIncludes(stock[0], search_text))
       .map((stock) => stock[1]);
 
-    if (searchStockList.length === 0) {
+    const searchList = [...new Set([...EnStockList, ...KoStockList])];
+
+    if (searchList.length === 0) {
       await session.commitTransaction();
       res.status(200).json({ ok: true, data: [] });
       return;
@@ -258,7 +270,7 @@ export const saveRecentSearch = async (req, res) => {
     );
 
     // searchStockList를 기반으로 검색어 존재 여부 확인 및 업데이트 또는 추가
-    for (const stock of searchStockList) {
+    for (const stock of searchList) {
       const existingSearch = await RecentSearch.findOne({
         user_snsId: snsId,
         is_delete: false,
@@ -285,7 +297,7 @@ export const saveRecentSearch = async (req, res) => {
     // 인기 검색어 카운트 +1 (5초 이내로 계속 검색 시 카운터가 되진 않음)
     const cacheKey = `${snsId}:search_${search_text}`;
     if (!searchCache.has(cacheKey)) {
-      for (const stock of searchStockList) {
+      for (const stock of searchList) {
         await PopularSearch.findOneAndUpdate(
           { stock_name: stock },
           { $inc: { count: 1 }, $setOnInsert: { stock_name: stock } },
@@ -296,7 +308,7 @@ export const saveRecentSearch = async (req, res) => {
     }
 
     // 저장 후 검색어에 대한 정보 출력
-    const result = await Stock.find({ stock_name: { $in: searchStockList } }).session(session);
+    const result = await Stock.find({ stock_name: { $in: searchList } }).session(session);
 
     await session.commitTransaction();
     res.status(200).json({ ok: true, data: result });
