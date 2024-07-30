@@ -8,6 +8,7 @@ import Stock from "../schemas/stock-schema.js";
 import RecentSearch from "../schemas/recentSearch-schema.js";
 import RecentSearchText from "../schemas/recentSearchText-schema.js";
 import PopularSearch from "../schemas/popularSearch-schema.js";
+import SchedulePopularSearch from "../schemas/schedulePopularSearch-schema.js";
 import User from "../schemas/user-schema.js";
 
 import { getKoreanTime } from "../utils/getKoreanTime.js";
@@ -152,7 +153,7 @@ export const getPopularSearchesName = async (req, res) => {
     await connectDB();
 
     // 인기 검색어 조회
-    const popularSearches = await PopularSearch.find({}, { _id: 0, stock_name: 1, count: 1 })
+    const popularSearches = await SchedulePopularSearch.find({}, { _id: 0, stock_name: 1, count: 1 })
       .sort({ count: -1 })
       .session(session);
 
@@ -181,7 +182,7 @@ export const getPopularSearches = async (req, res) => {
     await connectDB();
 
     // 인기 검색어 조회
-    const popularSearches = await PopularSearch.find().sort({ count: -1 }).session(session);
+    const popularSearches = await SchedulePopularSearch.find().sort({ count: -1 }).session(session);
 
     if (popularSearches.length === 0) {
       await session.commitTransaction();
