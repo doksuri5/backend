@@ -1,5 +1,6 @@
 import express from "express";
-import { getStockByReutersCode, getStocks } from "../controllers/stock-controller.js";
+import { getStockByReutersCode, getStocks, getStockLangName } from "../controllers/stock-controller.js";
+import { checkLoggedIn } from "../middleware/auth-middleware.js";
 
 /**
  * @swagger
@@ -131,5 +132,6 @@ const router = express.Router();
 
 router.get("/stocks", getStocks);
 router.get("/stocks/:reuters_code", getStockByReutersCode);
+router.get("/stock/getStockLangName", checkLoggedIn, getStockLangName);
 
 export default router;
