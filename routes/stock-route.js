@@ -1,5 +1,10 @@
 import express from "express";
-import { getStockByReutersCode, getStocks } from "../controllers/stock-controller.js";
+import {
+  getCurrencyExchanges,
+  getStockByReutersCode,
+  getStocks,
+  saveStockCurrency,
+} from "../controllers/stock-controller.js";
 
 /**
  * @swagger
@@ -130,6 +135,8 @@ import { getStockByReutersCode, getStocks } from "../controllers/stock-controlle
 const router = express.Router();
 
 router.get("/stocks", getStocks);
+router.post("/stocks/currency", saveStockCurrency);
+router.get("/stocks/currency", getCurrencyExchanges);
 router.get("/stocks/:reuters_code", getStockByReutersCode);
 
 export default router;
