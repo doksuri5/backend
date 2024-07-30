@@ -1,5 +1,11 @@
 import express from "express";
-import { getStockByReutersCode, getStocks, getStockLangName } from "../controllers/stock-controller.js";
+import {
+  getCurrencyExchanges,
+  getStockByReutersCode,
+  getStocks,
+  getStockLangName,
+  saveStockCurrency,
+} from "../controllers/stock-controller.js";
 import { checkLoggedIn } from "../middleware/auth-middleware.js";
 
 /**
@@ -131,6 +137,8 @@ import { checkLoggedIn } from "../middleware/auth-middleware.js";
 const router = express.Router();
 
 router.get("/stocks", getStocks);
+router.post("/stocks/currency", saveStockCurrency);
+router.get("/stocks/currency", getCurrencyExchanges);
 router.get("/stocks/:reuters_code", getStockByReutersCode);
 router.get("/stock/getStockLangName", checkLoggedIn, getStockLangName);
 
