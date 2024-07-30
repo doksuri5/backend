@@ -54,9 +54,11 @@ InterestStockSchema.methods.removeStock = async function (stock, options = {}) {
   this.stock_list = this.stock_list.filter((s) => s.reuters_code !== stock);
 
   // order 재정렬
-  this.stock_list.forEach((s, index) => {
-    s.order = index + 1;
-  });
+  this.stock_list
+    .sort((a, b) => a.order - b.order)
+    .forEach((s, index) => {
+      s.order = index + 1;
+    });
 
   await this.save(options);
 };
