@@ -4,6 +4,7 @@ import connectDB from "../database/db.js";
 import InterestStock from "../schemas/interestStock-schema.js";
 import News from "../schemas/news-schema.js";
 import Stock from "../schemas/stock-schema.js";
+import StockCode from "../schemas/stock-code.js";
 import { EN_STOCK_NAMES_TO_REUTERS_CODE, VARIOUS_STOCK_TO_REUTERS_CODE } from "../constants/app.constants.js";
 
 // 오늘 인기있는 뉴스
@@ -71,17 +72,41 @@ export const getInterestStockNews = async (req, res) => {
     const { stock_list } = await InterestStock.findOne({ user_snsId: snsId, is_delete: false }).session(session);
     const interest_stock_list = stock_list.map((item) => item.reuters_code);
 
-    const interestStockNews = await News.find({ relative_stock: { $in: interest_stock_list } })
-      .sort({
-        published_time: -1,
-        score: -1,
-        view: -1,
-      })
-      .limit(6)
-      .session(session);
+    const interestStockNewsList = [];
+    for (const reutersCode of interest_stock_list) {
+      let interestStockNews;
+      const stockName = await StockCode.findOne({ code: reutersCode }).session(session);
+      let indexExists = true;
+
+      while (indexExists) {
+        interestStockNews = await News.findOne({
+          relative_stock: { $in: reutersCode },
+          index: { $nin: interestStockNewsList.map((news) => news.index) },
+        })
+          .sort({
+            published_time: -1,
+            score: -1,
+            view: -1,
+          })
+          .session(session);
+
+        if (interestStockNews) {
+          indexExists = interestStockNewsList.some((news) => news.index === interestStockNews.index);
+        } else {
+          indexExists = false;
+        }
+      }
+
+      if (interestStockNews) {
+        interestStockNews = interestStockNews.toObject(); // Convert to plain object
+        interestStockNews.relativeStockName = stockName.name;
+        console.log(stockName.name);
+        interestStockNewsList.push(interestStockNews);
+      }
+    }
 
     await session.commitTransaction();
-    res.status(200).json({ ok: true, data: interestStockNews ?? [] });
+    res.status(200).json({ ok: true, data: interestStockNewsList ?? [] });
   } catch (err) {
     console.error(err);
     await session.abortTransaction();

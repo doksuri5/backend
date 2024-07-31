@@ -13,7 +13,6 @@ const stockCodeSchema = new mongoose.Schema({
   },
 });
 
-const StockCode =
-  mongoose.models.Stock || mongoose.model("StockCode", stockCodeSchema);
+const StockCode = mongoose.models.StockCode || mongoose.model("StockCode", stockCodeSchema);
 
 export default StockCode;
