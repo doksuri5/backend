@@ -343,6 +343,13 @@ export const findPassword = async (req, res) => {
   const { name, email } = req.body;
 
   try {
+    // 테스트 아이디는 수정 불가
+    if (email === "test@gmail.com") {
+      res.status(500).json({ ok: false, message: "해당 아이디는 임시 비밀번호를 발급할 수 없습니다." });
+      await session.abortTransaction();
+      return;
+    }
+
     await connectDB();
 
     const user = await User.findOne({ name, email, is_delete: false }).session(session);
